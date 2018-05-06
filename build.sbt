@@ -67,8 +67,8 @@ lazy val standardSettings = Seq(
     Wart.PublicInference,    // TODO: enable incrementally — currently results in many errors
     Wart.ImplicitParameter), // see wartremover/wartremover#350 & #351
 
-  licenses += ("Apache-2.0" -> new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
-  headerLicense := Some(HeaderLicense.ALv2("2018", "Edmund Noble")),
+  licenses += ("BSD New" -> new URL("https://opensource.org/licenses/BSD-3-Clause")),
+  headerLicense := Some(HeaderLicense.BSD3Clause("2018", "Edmund Noble")),
   resolvers += Resolver.sonatypeRepo("releases"),
 
   addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"),
