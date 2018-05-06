@@ -28,7 +28,7 @@ object Runner {
     def output: String => Unit = _output
   }
 
-  val defaultConfig: Config = new Config(_chunkSize = 100, _output = println(_))
+  val defaultConfig: Config = new Config(_chunkSize = 100, _output = print(_))
 
   @scala.annotation.tailrec
   private def printStrs(strs: List[String], output: String => Unit): Unit = strs match {

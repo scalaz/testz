@@ -102,7 +102,6 @@ lazy val core = project.in(file("core"))
   .settings(name := "testz-core")
   .settings(standardSettings ++ publishSettings: _*)
   .settings(
-    fork in run := true,
     connectInput in run := true,
     outputStrategy := Some(StdoutOutput)
   )
@@ -184,7 +183,6 @@ lazy val tests = project.in(file("tests"))
   .settings(name := "testz-tests")
   .dependsOn(core, runner, `property-scalaz`, scalatest, scalaz, specs2, stdlib)
   .settings(standardSettings)
-  .settings(fork in run := true)
   .settings(libraryDependencies ++= Seq(
     "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % Test))
   .enablePlugins(AutomateHeaderPlugin)
