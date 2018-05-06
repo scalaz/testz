@@ -19,16 +19,11 @@ package testz
 import org.specs2.mutable
 import org.specs2.specification.core.Fragment
 
-object specs2 {
-  abstract class TaskSuite extends mutable.Specification {
-      def test[T](test: Test[Function0, Function0[T]]): Function0[T]
+abstract class TaskSuite() extends mutable.Specification {
+  def test[T](test: Test[Function0, Function0[T]]): Function0[T]
 
-      test[Fragment](makeHarness(this))()
-  }
-
-  def makeHarness(spec: mutable.Specification): Test[() => ?, () => Fragment] =
+  private def makeHarness: Test[() => ?, () => Fragment] =
     new Test[() => ?, () => Fragment] {
-      import spec._
       def apply
         (name: String)
         (assertion: () => List[TestError])
@@ -49,4 +44,7 @@ object specs2 {
             }
       }
   }
+
+  test[Fragment](makeHarness)()
+
 }

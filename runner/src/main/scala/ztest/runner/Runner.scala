@@ -19,7 +19,14 @@ package testz.runner
 import scala.concurrent.{ExecutionContext, Future}
 
 object Runner {
-  final case class Config(chunkSize: Int)
+  // Configuration.
+  // Forwards-compatible by construction.
+  final class Config private[Runner](private val _chunkSize: Int) {
+    def withChunkSize(newChunkSize: Int) = new Config(newChunkSize)
+    def chunkSize = _chunkSize
+  }
+
+  val defaultConfig: Config = new Config(_chunkSize = 100)
 
   @scala.annotation.tailrec
   private def printStrs(strs: List[String]): Unit = strs match {
@@ -32,7 +39,6 @@ object Runner {
     case _ =>
   }
 
-  val defaultConfig: Config = Config(chunkSize = 100)
 
   def configured(suites: List[() => Suite], config: Config)(implicit ec: ExecutionContext): Future[Unit] = Future {
     import config._

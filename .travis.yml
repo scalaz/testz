@@ -15,7 +15,7 @@ matrix:
 
 sudo: false
 script:
-  - sbt coverage doc tests/run tut && sbt coverageReport
+  - sbt coverage tests/run tut && sbt coverageReport
 branches:
   except:
   - "/^v\\d+\\.\\d+\\.\\d+$/"
