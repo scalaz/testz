@@ -1,22 +1,21 @@
 language: scala
 scala:
   - 2.11.8
-  - 2.12.1
+  - 2.12.4
 jdk:
   - oraclejdk8
   - oraclejdk7
   - openjdk7
 matrix:
   exclude: # NB: Scala 2.12 requires JDK 8
-  - scala: 2.12.1
+  - scala: 2.12.4
     jdk: oraclejdk7
-  - scala: 2.12.1
+  - scala: 2.12.4
     jdk: openjdk7
 
 sudo: false
 script:
-  - sbt coverage doc tests/run tut
-  - sbt coverageReport
+  - sbt coverage doc tests/run tut && sbt coverageReport
 branches:
   except:
   - "/^v\\d+\\.\\d+\\.\\d+$/"
