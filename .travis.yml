@@ -15,7 +15,6 @@ matrix:
 
 sudo: false
 script:
-  - sbt checkHeaders
   - sbt coverage doc tests/run tut
   - sbt coverageReport
 branches:
