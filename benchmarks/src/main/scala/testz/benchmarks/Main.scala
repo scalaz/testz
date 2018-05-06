@@ -68,7 +68,7 @@ object Main {
 
   def run: Task[Unit] = {
     Task.async { cb =>
-      Runner(testPureSuite :: List.fill(2)(testTaskSuite))
+      Runner((() => testPureSuite) :: List.fill(2)(() => testTaskSuite))
         .onComplete(t => cb(\/.fromEither(t.toEither)))
     }
   }

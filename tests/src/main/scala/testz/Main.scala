@@ -24,9 +24,9 @@ import testz.runner._
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val suites: List[Suite] = List(
-      new StdlibSuite,
-      new ExhaustiveSuite
+    val suites: List[() => Suite] = List(
+      () => new StdlibSuite,
+      () => new ExhaustiveSuite
     )
     Await.result(Runner(suites), Duration.Inf)
   }

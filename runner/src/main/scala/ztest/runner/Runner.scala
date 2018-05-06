@@ -34,14 +34,14 @@ object Runner {
 
   val defaultConfig: Config = Config(chunkSize = 100)
 
-  def configured(suites: List[Suite], config: Config)(implicit ec: ExecutionContext): Future[Unit] = Future {
+  def configured(suites: List[() => Suite], config: Config)(implicit ec: ExecutionContext): Future[Unit] = Future {
     import config._
     Future.traverse(suites.grouped(chunkSize)) { chunk =>
-      Future.traverse(chunk)(_.run).map(printStrss)
+      Future.traverse(chunk)(_().run).map(printStrss)
     }.map(_ => ())
   }.flatten
 
-  def apply(suites: List[Suite])(implicit ec: ExecutionContext): Future[Unit] =
+  def apply(suites: List[() => Suite])(implicit ec: ExecutionContext): Future[Unit] =
     configured(suites, defaultConfig)
 
 }
