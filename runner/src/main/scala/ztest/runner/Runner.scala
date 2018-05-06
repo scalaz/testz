@@ -21,30 +21,35 @@ import scala.concurrent.{ExecutionContext, Future}
 object Runner {
   // Configuration.
   // Forwards-compatible by construction.
-  final class Config private[Runner](private val _chunkSize: Int) {
-    def withChunkSize(newChunkSize: Int) = new Config(newChunkSize)
-    def chunkSize = _chunkSize
+  final class Config private[Runner](private val _chunkSize: Int, _output: String => Unit) {
+    def withChunkSize(newChunkSize: Int) = new Config(newChunkSize, _output)
+    def withOutput(newOutput: String => Unit) = new Config(_chunkSize, newOutput)
+    def chunkSize: Int = _chunkSize
+    def output: String => Unit = _output
   }
 
-  val defaultConfig: Config = new Config(_chunkSize = 100)
+  val defaultConfig: Config = new Config(_chunkSize = 100, _output = println(_))
 
   @scala.annotation.tailrec
-  private def printStrs(strs: List[String]): Unit = strs match {
-    case x :: xs => print(x); printStrs(xs)
+  private def printStrs(strs: List[String], output: String => Unit): Unit = strs match {
+    case x :: xs => output(x); printStrs(xs, output)
     case _ =>
   }
   @scala.annotation.tailrec
-  private def printStrss(strs: List[List[String]]): Unit = strs match {
-    case x :: xs => printStrs(x); print("\n"); printStrss(xs)
+  private def printStrss(strs: List[List[String]], output: String => Unit): Unit = strs match {
+    case xs: ::[List[String]] => printStrs(xs.head, output); output("\n"); printStrss(xs.tail, output)
     case _ =>
   }
-
 
   def configured(suites: List[() => Suite], config: Config)(implicit ec: ExecutionContext): Future[Unit] = Future {
     import config._
-    Future.traverse(suites.grouped(chunkSize)) { chunk =>
-      Future.traverse(chunk)(_().run).map(printStrss)
-    }.map(_ => ())
+    val startTime = System.currentTimeMillis
+    Future.traverse(suites.grouped(chunkSize).toList) { chunk =>
+      Future.traverse(chunk)(_().run).map(printStrss(_, config.output))
+    }.map { r =>
+      val endTime = System.currentTimeMillis
+      config.output(s"Testing took ${endTime - startTime} ms")
+    }
   }.flatten
 
   def apply(suites: List[() => Suite])(implicit ec: ExecutionContext): Future[Unit] =
