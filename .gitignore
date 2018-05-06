@@ -1,0 +1,16 @@
+project/project
+project/target
+target
+core/target
+.idea
+tmp
+**/.DS_Store
+.cache
+.tm_properties
+.classpath
+.project
+.settings
+*.swp
+tags
+.ensime
+.ensime_cache
