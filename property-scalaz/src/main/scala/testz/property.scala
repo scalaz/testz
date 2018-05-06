@@ -74,26 +74,30 @@ object property {
     Traverse[List].traverseM(in)(i => testGenerator(i()))
   }
 
-  def exhaustiveU[F[_]: Monad: BindRec, I]
+  def exhaustiveU[F[_]: BindRec, I]
                  (in: Unfold[F, I])
-                 (testGenerator: I => F[List[TestError]]): F[List[TestError]] = {
-    exhaustiveUNat[F, F, I](in)(testGenerator)(λ[F ~> F](x => x))
+                 (testGenerator: I => F[List[TestError]])
+                 (implicit F: Monad[F]): F[List[TestError]] = {
+    F.join(exhaustiveUR[F, F, I](in)(testGenerator))
   }
 
-  def exhaustiveUNat[F[_]: Monad, G[_]: Monad: BindRec, I]
-                    (in: Unfold[G, I])
-                    (testGenerator: I => F[List[TestError]])
-                    (nat: G ~> F): F[List[TestError]] = {
-    val myFold: Fold[G, I, F[List[TestError]]] =
-      new Fold[G, I, F[List[TestError]]] {
-        type S = List[F[List[TestError]]]
-        val start = Nil
-        def step(s: List[F[List[TestError]]], i: I): G[List[F[List[TestError]]]] =
-          (testGenerator(i) :: s).pure[G]
-        def end(s: List[F[List[TestError]]]): G[F[List[TestError]]] =
-          s.reverse.traverseM(f => f).pure[G]
-      }
-    nat(zapFold(in, myFold)).join
+  def runTests[F[_]: Applicative, G[_]: Applicative, I](
+    testGenerator: I => F[List[TestError]]
+  ): Fold[G, I, F[List[TestError]]] =
+    new Fold[G, I, F[List[TestError]]] {
+      type S = List[F[List[TestError]]]
+      val start = Nil
+      def step(s: List[F[List[TestError]]], i: I): G[List[F[List[TestError]]]] =
+        (testGenerator(i) :: s).pure[G]
+      def end(s: List[F[List[TestError]]]): G[F[List[TestError]]] =
+        s.reverse.traverseM(f => f).pure[G]
+    }
+
+  def exhaustiveUR[F[_]: Applicative, G[_]: Monad: BindRec, I]
+  (in: Unfold[G, I]
+  )(testGenerator: I => F[List[TestError]]
+  ): G[F[List[TestError]]] = {
+    zapFold(in, runTests[F, G, I](testGenerator))
   }
 
   def exhaustiveV[F[_]: Applicative, I]

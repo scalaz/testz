@@ -19,32 +19,36 @@ package testz
 import org.specs2.mutable
 import org.specs2.specification.core.Fragment
 
-abstract class TaskSuite() extends mutable.Specification {
-  def test[T](test: Test[Function0, Function0[T]]): Function0[T]
+object specs2 {
 
-  private def makeHarness: Test[() => ?, () => Fragment] =
-    new Test[() => ?, () => Fragment] {
-      def apply
-        (name: String)
-        (assertion: () => List[TestError])
-        : () => Fragment = {
-        // todo: catch exceptions
-        () => name in (assertion() must_== Nil)
-      }
-      def section
-        (name: String)
-        (
-          test1: () => Fragment,
-          tests: () => Fragment*
-        ): () => Fragment = {
-          () =>
-            name should {
-              val h = test1();
-              tests.map(_()).lastOption.getOrElse(h)
-            }
-      }
+  abstract class TaskSuite() extends mutable.Specification {
+    def test[T](test: Test[Function0, Function0[T]]): Function0[T]
+
+    private def makeHarness: Test[() => ?, () => Fragment] =
+      new Test[() => ?, () => Fragment] {
+        def apply
+          (name: String)
+          (assertion: () => List[TestError])
+          : () => Fragment = {
+          // todo: catch exceptions
+          () => name in (assertion() must_== Nil)
+        }
+        def section
+          (name: String)
+          (
+            test1: () => Fragment,
+            tests: () => Fragment*
+          ): () => Fragment = {
+            () =>
+              name should {
+                val h = test1();
+                tests.map(_()).lastOption.getOrElse(h)
+              }
+        }
+    }
+
+    test[Fragment](makeHarness)()
+
   }
-
-  test[Fragment](makeHarness)()
 
 }
