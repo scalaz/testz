@@ -4,12 +4,6 @@ scala:
   - 2.12.4
 jdk:
   - oraclejdk8
-  - oraclejdk7
-matrix:
-  exclude: # NB: Scala 2.12 requires JDK 8
-  - scala: 2.12.4
-    jdk: oraclejdk7
-
 sudo: false
 script:
   - sbt coverage tests/run tut coverageReport
