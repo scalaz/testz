@@ -32,101 +32,105 @@ package testz
 
 import testz.runner._
 
-import java.util.concurrent.atomic.AtomicReference
-import scala.concurrent.{ExecutionContext, Future}
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.Try
 
 abstract class PureSuite extends Suite {
-  def test[T](test: Test[Function0, T]): T
+  import PureSuite._
 
-  def run(implicit ec: ExecutionContext): Future[List[String]] = {
-    val buf = new AtomicReference[List[String]](Nil)
-    val tester = this.test(PureSuite.makeHarness(buf))
-    tester(Nil)
-    Future.successful(buf.get)
+  def test[T[_]](test: Harness[Id, T]): T[Unit]
+
+  def run(ec: ExecutionContext): Future[List[String]] = {
+    val buf = new ListBuffer[String]()
+    this.test[Uses](PureSuite.makeHarness(buf))((), Nil)
+    Future.successful(buf.result())
   }
 }
 
 object PureSuite {
-  type TestEff[A] = List[String] => A
+  type Uses[R] = (R, List[String]) => Unit
 
-  private def add(buf: AtomicReference[List[String]], str: String): Unit = {
-    val _ = buf.updateAndGet(str :: _)
-  }
+  def makeHarness(buf: ListBuffer[String]): Harness[Id, Uses] =
+    new Harness[Id, Uses] {
+      def apply[R]
+        (name: String)
+        (assertions: R => TestResult
+      ): Uses[R] =
+        (r, scope) => buf += Suite.printTest(scope, assertions(r))
 
-  def makeHarness(buf: AtomicReference[List[String]]): Test[Function0, List[String] => Unit] =
-    new Test[Function0, TestEff[Unit]] {
-      def apply(name: String)(assertion: () => List[TestError]): TestEff[Unit] =
-        { (ls: List[String]) =>
-          val result: List[TestError] = try {
-            assertion()
-          } catch {
-            case thrown: Exception => List(ExceptionThrown(thrown))
-          }
-          add(buf, Suite.printTest(name :: ls, result))
-        }
+      def bracket[R, I]
+        (init: I)
+        (cleanup: I => Unit)
+        (tests: ((I, R), List[String]) => Unit
+      ): Uses[R] =
+        // cleanup is never called, because all tests are pure.
+        (r, sc) => tests((init, r), sc)
 
-      def section(name: String)(test1: TestEff[Unit], tests: TestEff[Unit]*) =
-        { (ls: List[String]) =>
-          val newScopes = name :: ls
-          test1(newScopes)
-          tests.foreach(test => test(newScopes))
-        }
-  }
+      def section[R]
+        (name: String)
+        (test1: Uses[R], tests: Uses[R]*
+      ): Uses[R] = {
+        (r, sc) =>
+          val newScope = name :: sc
+          test1(r, newScope)
+          tests.foreach(_(r, newScope))
+      }
+    }
 }
 
 abstract class ImpureSuite extends Suite {
-  def test[T](test: Test[λ[A => () => Future[A]], () => Future[T]]): T
+  import ImpureSuite._
 
-  def run(implicit ec: ExecutionContext): Future[List[String]] = {
-    val buf = new AtomicReference[List[String]](Nil)
-    for {
-      _ <- this.test(ImpureSuite.makeHarness(buf))(Nil)
-    } yield buf.get
+  def test[T[_]](test: Harness[FakeTask, T]): T[Unit]
+
+  def run(ec: ExecutionContext): Future[List[String]] = {
+    val buf = new ListBuffer[String]()
+
+    test(makeHarness(buf, ec))((), Nil)
+      .map(_ => buf.result())(ec)
   }
 }
 
 object ImpureSuite {
 
-  private def add(buf: AtomicReference[List[String]], str: String): Unit = {
-    val _ = buf.updateAndGet(str :: _)
-  }
+  type Uses[R] = (R, List[String]) => Future[Unit]
 
-  def makeHarness(buf: AtomicReference[List[String]])(implicit ec: ExecutionContext): Test[λ[A => () => Future[A]], () => Future[List[String] => Future[Unit]]] =
-    new Test[λ[A => () => Future[A]], () => Future[List[String] => Future[Unit]]] {
-      def apply(name: String)(assertion: () => Future[List[TestError]]): () => Future[List[String] => Future[Unit]] =
-        () => Future.successful { (ls: List[String]) =>
-          val result: Future[List[TestError]] = try {
-            assertion().transform {
-              case scala.util.Failure(t) => scala.util.Success(List(ExceptionThrown(t)))
-              case scala.util.Success(_) => scala.util.Success(Nil)
-            }
-          } catch {
-            case thrown: Exception => Future.successful(List(ExceptionThrown(thrown)))
-          }
-          result.map { r =>
-            add(buf, Suite.printTest(name :: ls, r))
-          }
-        }
+  type FakeTask[A] = () => Future[A]
 
-      def section(name: String)(test1: () => Future[List[String] => Future[Unit]], tests: () => Future[List[String] => Future[Unit]]*) =
-        (() => Future.successful { (ls: List[String]) =>
-          val newScopes = name :: ls
-          test1().flatMap(_(newScopes)).flatMap { _ =>
-            Future.traverse(tests) (test => test().flatMap(_(newScopes)))
-          }.map(_ => ())
+  def makeHarness(buf: ListBuffer[String], ec: ExecutionContext): Harness[FakeTask, Uses] =
+    new Harness[FakeTask, Uses] {
+      def apply[R](name: String)(assertion: R => FakeTask[TestResult]): Uses[R] =
+        (r, sc) => assertion(r)().map { es =>
+          buf += Suite.printTest(sc, es)
+          ()
+        }(ec)
 
-        })
-  }
-}
+      def section[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
+        (r, sc) =>
+          val newScope = name :: sc
+          test1(r, newScope).flatMap(_ =>
+            Future.traverse(tests)(_(r, newScope))(collection.breakOut, ec)
+          )(ec).map(_ => ())(ec)
+      }
 
-object stdlib {
-  object assertEqual {
-    def apply[E](fst: E, snd: E): List[TestError] =
-      if (fst == snd) Nil else Failure(s"$fst\n\nwas not equal to\n\n$snd") :: Nil
-  }
+      def saneTransform[A, B](fut: Future[A])(f: Try[A] => Future[B])(ec: ExecutionContext): Future[B] = {
+        val prom = Promise[B]
+        fut.onComplete {
+          t => prom.completeWith(f(t))
+        }(ec)
+        prom.future
+      }
 
-  object assertNotEqual {
-    def apply[E](fst: E, snd: E): List[TestError] =
-      if (fst != snd) Nil else Failure(s"$fst\n\nwas equal to\n\n$snd") :: Nil
-  }
+      def bracket[R, I]
+        (init: FakeTask[I])
+        (cleanup: I => FakeTask[Unit])
+        (tests: Uses[(I, R)]
+      ): Uses[R] = { (r, sc) =>
+        init().flatMap {
+          i => saneTransform(tests((i, r), sc))(_ => cleanup(i)())(ec)
+        }(ec)
+      }
+
+    }
 }

@@ -56,18 +56,18 @@ object Runner {
     case _ =>
   }
 
-  def configured(suites: List[() => Suite], config: Config)(implicit ec: ExecutionContext): Future[Unit] = Future {
+  def configured(suites: List[() => Suite], config: Config, ec: ExecutionContext): Future[Unit] = Future {
     import config._
     val startTime = System.currentTimeMillis
     Future.traverse(suites.grouped(chunkSize).toList) { chunk =>
-      Future.traverse(chunk)(_().run).map(printStrss(_, config.output))
-    }.map { r =>
+      Future.traverse(chunk)(_().run(ec))(collection.breakOut, ec).map(printStrss(_, config.output))(ec)
+    }(collection.breakOut, ec).map { r =>
       val endTime = System.currentTimeMillis
       config.output(s"Testing took ${endTime - startTime} ms")
-    }
-  }.flatten
+    }(ec)
+  }(ec).flatten
 
-  def apply(suites: List[() => Suite])(implicit ec: ExecutionContext): Future[Unit] =
-    configured(suites, defaultConfig)
+  def apply(suites: List[() => Suite], ec: ExecutionContext): Future[Unit] =
+    configured(suites, defaultConfig, ec)
 
 }

@@ -32,16 +32,16 @@ package testz
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import scala.concurrent.ExecutionContext.Implicits._
+import scala.concurrent.ExecutionContext.global
 
 import testz.runner._
 
 object Main {
   def main(args: Array[String]): Unit = {
     val suites: List[() => Suite] = List(
-      () => new StdlibSuite,
-      () => new ExhaustiveSuite
+      () => new ExhaustiveSuite,
+      () => new StdlibSuite
     )
-    Await.result(Runner(suites), Duration.Inf)
+    Await.result(Runner(suites, global), Duration.Inf)
   }
 }

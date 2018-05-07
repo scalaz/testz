@@ -34,27 +34,29 @@ import scalaz._, Scalaz._
 import z._, property._
 
 final class ExhaustiveSuite extends PureSuite {
-  val testData = Unfold[() => ?, Int](1, 2, 3, 4, 5, 6).flatMap {
+  val testData = Unfold[Id, Int](1, 2, 3, 4, 5, 6).flatMap {
     i =>
       val n = i * 10
       Unfold((1 to 5).toList.map(_ + n): _*)
   }
 
-  def test[T](test: Test[() => ?, T]): T =
+  def test[T[_]](test: Harness[Id, T]): T[Unit] =
     test.section("exhaustives")(
-      test("exhaustiveS int range") { () =>
-        exhaustiveS(1, 2, 3, 4, 5, 6)(i =>
-          () => assertEqualNoShow(i, 3)
-        ).map(
-          assertEqualNoShow(_, List.fill(5)(Failure("not equal, when should be")))
-        )()
+      test("exhaustiveS int range") { _ =>
+        val actualErrors = exhaustiveS[Id, Int](1, 2, 3, 4, 5, 6)(i =>
+          if (i === 3) Failure.string("not equal")
+          else Success()
+        )
+        val expectedErrors = Failure.strings(List.fill(5)("not equal"))
+        assert(actualErrors === expectedErrors)
       },
-      test("exhaustiveU int range") { () =>
-        exhaustiveU(testData)(
-          i => { () => assertNotEqualNoShow(i % 5, 1) }
-        ).map(
-          assertEqualNoShow(_, List.fill(6)(Failure("equal, when shouldn't be")))
-        )()
+      test("exhaustiveU int range") { _ =>
+        val actualErrors = exhaustiveU[Id, Int](testData) { i =>
+          if (i % 5 === 1) Failure.string("weren't equal")
+          else Success()
+        }
+        assert(actualErrors === Failure.strings(List.fill(6)("equal")))
+
       }
     )
 }

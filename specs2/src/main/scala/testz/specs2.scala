@@ -36,32 +36,43 @@ import org.specs2.specification.core.Fragment
 object specs2 {
 
   abstract class TaskSuite() extends mutable.Specification {
-    def test[T](test: Test[Function0, Function0[T]]): Function0[T]
+    def test[T[_]](test: Harness[() => ?, T]): T[Unit]
 
-    private def makeHarness: Test[() => ?, () => Fragment] =
-      new Test[() => ?, () => Fragment] {
-        def apply
+    private def makeHarness: Harness[() => ?, ? => Fragment] =
+      new Harness[() => ?, ? => Fragment] {
+        def apply[R]
           (name: String)
-          (assertion: () => List[TestError])
-          : () => Fragment = {
+          (assertion: R => () => TestResult)
+          : R => Fragment = {
           // todo: catch exceptions
-          () => name in (assertion() must_== Nil)
+          r => name in (assertion(r) must_== Nil)
         }
-        def section
+        def section[R]
           (name: String)
           (
-            test1: () => Fragment,
-            tests: () => Fragment*
-          ): () => Fragment = {
-            () =>
-              name should {
-                val h = test1();
-                tests.map(_()).lastOption.getOrElse(h)
-              }
+            test1: R => Fragment,
+            tests: R => Fragment*
+          ): R => Fragment = { r =>
+            name should {
+              val h = test1(r)
+              tests.map(_(r)).lastOption.getOrElse(h)
+            }
+        }
+        def bracket[R, I]
+          (init: () => I)
+          (cleanup: I => () => Unit)
+          (tests: ((I, R)) => Fragment
+        ): R => Fragment = { r =>
+          val i = init()
+          // this probably doesn't work, because
+          // specs2 has some magical execution model things.
+          val f = tests((i, r))
+          cleanup(i)
+          f
         }
     }
 
-    test[Fragment](makeHarness)()
+    test[? => Fragment](makeHarness)(())
 
   }
 

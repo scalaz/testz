@@ -21,7 +21,7 @@ The test suite type expected by the runner is:
 
 ```scala
 trait Suite {
-  def run(implicit ec: ExecutionContext): Future[List[String]]
+  def run(ec: ExecutionContext): Future[List[String]]
 }
 ```
 

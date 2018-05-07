@@ -28,18 +28,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package testz
-
-final class StdlibSuite extends PureSuite {
-  def test[T[_]](test: Harness[Id, T]): T[Unit] =
-    test.section("assert")(
-      test("success") { _ =>
-        if (assert(true) == Success) Success
-        else Failure.noMessage
-      },
-      test("failure") { _ =>
-        if (assert(false) == Failure.noMessage) Success
-        else Failure.noMessage
-      }
-    )
+package object testz {
+  type Id[A] = A
+  def assert(b: Boolean): TestResult = if (b) Success else Failure.noMessage
 }

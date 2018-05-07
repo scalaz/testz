@@ -34,15 +34,15 @@ package runner
 import scala.concurrent.{ExecutionContext, Future}
 
 trait Suite {
-  def run(implicit ec: ExecutionContext): Future[List[String]]
+  def run(ec: ExecutionContext): Future[List[String]]
 }
 
 object Suite {
   def printScope(scope: List[String]): String = {
     util.fastConcatDelim(scope.reverse.asInstanceOf[::[String]], "->")
   }
-  def printTest(scope: List[String], out: List[TestError]) = out match {
-    case Nil =>    printScope("succeeded\n" :: scope)
-    case _ :: _ => printScope("failed\n" :: scope)
+  def printTest(scope: List[String], out: TestResult) = out match {
+    case Success => printScope("succeeded\n" :: scope)
+    case _       => printScope("failed\n" :: scope)
   }
 }

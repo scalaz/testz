@@ -32,7 +32,7 @@ package testz
 
 import runner._
 
-import java.util.concurrent.atomic.AtomicReference
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
 import scalaz._, Scalaz._
@@ -61,68 +61,84 @@ object z {
     F.tailrecM[(fold.S, unfold.S), B]({ case (fs, us) => go(fs, us) })((fold.start, unfold.start))
   }
 
-  object assertEqualNoShow {
-    def apply[E: Equal](fst: E, snd: E): List[TestError] =
-      if (fst === snd) Nil else Failure("not equal, when should be") :: Nil
+  implicit val equalTestResult: Equal[TestResult] = Equal.equal {
+    case (f, s) if f eq s => true
+    case (Success, Success) => true
+    case (f1: Failure, f2: Failure) => f1.failures == f2.failures
+    case _ => false // I don't care about comparing Throwable for equality.
   }
 
-  object assertNotEqualNoShow {
-    def apply[E: Equal](fst: E, snd: E): List[TestError] =
-      if (fst === snd) Failure("equal, when shouldn't be") :: Nil else Nil
+  implicit val monoidTestResult: Monoid[TestResult] = new Monoid[TestResult] {
+    def zero: TestResult = Success()
+    def append(f: TestResult, s: => TestResult): TestResult = TestResult.combine(f, s)
   }
-
-  implicit val equalTestError: Equal[TestError] = Equal.equalA
 
   abstract class TaskSuite extends Suite {
-    def test[T](test: Test[Task, Task[T]]): Task[T]
-    def run(implicit ec: ExecutionContext): Future[List[String]] = {
-      type TestEff[A] = ReaderT[Task, List[String], A]
-      val buf = Task.delay(new AtomicReference[List[String]](Nil))
+    type Uses[R] = (R, List[String]) => Task[Unit]
 
-      def add(buf: AtomicReference[List[String]], str: String): Unit = {
-        val _ = buf.updateAndGet(xs => str :: xs)
+    implicit def contravariantUses: Contravariant[Uses] = new Contravariant[λ[R => (R, List[String]) => Task[Unit]]] {
+      def contramap[A, B](r: (A, List[String]) => Task[Unit])(f: B => A): (B, List[String]) => Task[Unit] = {
+        (b, ls) => r(f(b), ls)
+      }
+    }
+
+    def test[T[_]: Contravariant](harness: Harness[Task, T]): T[Unit]
+
+    def run(ec: ExecutionContext): Future[List[String]] = {
+      val buf = new ListBuffer[String]()
+
+      // def catchExceptions(t: Task[TestResult]): Task[TestResult] = {
+      //   t.attempt.map {
+      //     case \/-(es) =>
+      //       es
+      //     case -\/(th) =>
+      //       ExceptionThrown(th) :: Nil
+      //   }
+      // }
+
+      def harness(buf: ListBuffer[String]) = new Harness[Task, λ[R => (R, List[String]) => Task[Unit]]] {
+        def apply[R](name: String)(assertion: R => Task[TestResult]): Uses[R] =
+          (r, sc) => assertion(r).attempt.map {
+            case \/-(es) =>
+              buf += Suite.printTest(sc, es)
+              ()
+            case -\/(e) =>
+              buf += Suite.printTest(sc, Failure.error(e))
+              ()
+          }
+
+        def section[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
+          (r, sc) =>
+            val newScope = name :: sc
+            test1(r, newScope).flatMap(_ =>
+              tests.toList.traverse(_(r, newScope))
+            ).void
+        }
+
+        def bracket[R, I]
+          (init: Task[I])
+          (cleanup: I => Task[Unit])
+          (tests: Uses[(I, R)]
+        ): Uses[R] = { (r, sc) =>
+          init.flatMap {
+            i => tests((i, r), sc).attempt.flatMap(_ => cleanup(i))
+          }
+        }
       }
 
-      def test(buf: AtomicReference[List[String]]): Test[Task, Task[TestEff[Unit]]] =
-        new Test[Task, Task[TestEff[Unit]]] {
-          def apply
-            (name: String)
-            (assertion: Task[List[TestError]]
-            ): Task[TestEff[Unit]] = {
-            // todo: catch exceptions
-            Task.now(ReaderT((ls: List[String]) =>
-              assertion.attempt.map { r =>
-                val out: List[TestError] = r match {
-                  case \/-(result) =>
-                    result
-                  case -\/(exception) =>
-                    List(ExceptionThrown(exception))
-                }
-                add(buf, Suite.printTest(name :: ls, out))
-              }
-            ))
-          }
-          def section
-            (name: String)
-            (
-              test1: Task[TestEff[Unit]],
-              tests: Task[TestEff[Unit]]*
-            ): Task[TestEff[Unit]] = {
-            NonEmptyList(test1, tests: _*).foldLeft1 {
-              // execute sections,
-              ^(_, _) {
-                // execute tests
-                ^(_, _) { (_, _) => () }
-              }
-            }
-          }
+      val prom = Promise[List[String]]
+      test[Uses](harness(buf)).apply((), Nil).flatMap(_ => Task.delay(buf.result())).unsafePerformAsync {
+        case -\/(e) => prom.failure(e)
+        case \/-(r) => prom.success(r)
       }
-      val pr = Promise[List[String]]()
-      buf.flatMap { b =>
-        this.test[TestEff[Unit]](test(b)).flatMap(_.run(Nil)) >>
-          Task.delay(b.get)
-      }.unsafePerformAsync { f => pr.complete(f.fold(scala.util.Failure(_), scala.util.Success(_))) }
-      pr.future
+      prom.future
+
+      // buf.flatMap { b =>
+      //   TestS.run(this.test[TestS](harness(b)), Nil) >>
+      //     Task.delay(b.get)
+      // }.unsafePerformAsync { f => pr.complete(f.fold(SFailure(_), SSuccess(_))) }
+      // pr.future
+      ???
     }
   }
 }

@@ -30,7 +30,7 @@
 
 package testz.benchmarks
 
-import scalaz.\/
+import scalaz.{\/, Contravariant}
 import scalaz.concurrent.Task
 import scalaz.std.anyVal._
 import scalaz.syntax.all._
@@ -42,38 +42,38 @@ import testz.z._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object Main {
-  def testPureSuite = new PureSuite {
-    def test[T](test: Test[Function0, T]): T =
+  val testPureSuite = new PureSuite {
+    def test[T[_]](test: Harness[Id, T]): T[Unit] =
       test.section("some tests")(
-        test("this test fails")(() =>
-          assertEqualNoShow(1, 2)
+        test("this test fails")(_ =>
+          assert(1 === 2)
         ),
-        test("this test wins")(() =>
-          assertEqualNoShow(1, 1)
+        test("this test wins")(_ =>
+          assert(1 === 1)
         )
       )
   }
 
-  def testTaskSuite = new TaskSuite {
-    def test[T](test: Test[Task, Task[T]]): Task[T] = {
-      def doMoreTests(ts: Task[T], i: Int): Task[T] = {
+  val testTaskSuite = new TaskSuite {
+    def test[T[_]: Contravariant](test: Harness[Task, T]): T[Unit] = {
+      def doMoreTests(ts: T[Unit], i: Int): T[Unit] = {
         if (i == 0) ts
         else doMoreTests(
           test.section(s"test section $i")(
             ts,
-            test(s"this is test $i-1")(
-              assertEqualNoShow(1, 1).pure[Task]
+            test(s"this is test $i-1")(_ =>
+              assert(1 === 1).pure[Task]
             ),
-            test(s"this is test $i-2")(
-              assertEqualNoShow(1, 4).pure[Task]
+            test(s"this is test $i-2")(_ =>
+              assert(1 === 4).pure[Task]
             )
           ), i - 1
         )
       }
       doMoreTests(
         test.section("root tests")(
-          test("this test wins")(
-            assertEqualNoShow(1, 1).pure[Task]
+          test("this test wins")(_ =>
+            assert(1 === 1).pure[Task]
           )
         ), 1
       )
@@ -82,7 +82,7 @@ object Main {
 
   def run: Task[Unit] = {
     Task.async { cb =>
-      Runner((() => testPureSuite) :: List.fill(2)(() => testTaskSuite))
+      Runner((() => testPureSuite) :: List.fill(2)(() => testTaskSuite), global)
         .onComplete(t => cb(\/.fromEither(t.toEither)))
     }
   }

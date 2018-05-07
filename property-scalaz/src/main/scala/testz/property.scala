@@ -30,11 +30,10 @@
 
 package testz
 
-import testz.z._
+import z._
 
-import scalaz.{~>, Applicative, BindRec, Monad, Traverse}
+import scalaz.{~>, Applicative, BindRec, Monad}
 import scalaz.concurrent.Task
-import scalaz.std.list._
 import scalaz.syntax.all._
 import spire.random.rng._
 
@@ -45,34 +44,36 @@ object property {
     [F[_], I]
     (seed: (Array[Int], Int))
     (gen: Int => I)
-    (testGenerator: I => F[List[TestError]])
+    (testGenerator: I => F[TestResult])
     (numTestCases: Int)
-    (implicit F: Applicative[F]): F[List[TestError]] = {
+    (implicit F: Applicative[F]): F[TestResult] = {
     val rng = Well44497a.fromSeed(seed)
-    var acc: F[List[TestError]] = F.pure(Nil)
+    var acc: F[TestResult] = F.pure(Success)
     var i = 0
     while (i < numTestCases) {
-      acc = F.apply2(acc, testGenerator(gen(rng.nextInt)))(_ ++ _)
+      acc = F.apply2(acc, testGenerator(gen(rng.nextInt)))(TestResult.combine)
       i = i + 1
     }
-    acc
+    if (numTestCases == 0) F.pure(Failure.string("No test cases passed to `fromSeed`"))
+    else acc
   }
 
+  // repeatable tests, via the use of a constant seed.
   def repeatable
     [F[_], I]
     (gen: Int => I)
-    (testGenerator: I => F[List[TestError]])
+    (testGenerator: I => F[TestResult])
     (numTestCases: Int)
-    (implicit F: Applicative[F]): F[List[TestError]] =
+    (implicit F: Applicative[F]): F[TestResult] =
     fromSeed[F, I]((Array.fill[Int]((44497 + 31) / 32)(1010101010), 2))(gen)(testGenerator)(numTestCases)
 
   def nonrepeatable
     [F[_], I]
     (gen: Int => I)
-    (testGenerator: I => F[List[TestError]])
+    (testGenerator: I => F[TestResult])
     (numTestCases: Int)
     (fromTask: Task ~> F)
-    (implicit F: Monad[F]): F[List[TestError]] =
+    (implicit F: Monad[F]): F[TestResult] =
     for {
       seed <- fromTask(Task.delay(
         Array.fill[Array[Int]](10)(
@@ -83,44 +84,47 @@ object property {
 
   def exhaustive[F[_]: Applicative, I]
                 (in: List[(() => I)])
-                (testGenerator: I => F[List[TestError]])
-                : F[List[TestError]] = {
-    Traverse[List].traverseM(in)(i => testGenerator(i()))
+                (testGenerator: I => F[TestResult])
+                : F[TestResult] = {
+    in.foldLeft(Success().point[F])((b, a) => Applicative[F].apply2(b, testGenerator(a()))(TestResult.combine))
   }
 
   def exhaustiveU[F[_]: BindRec, I]
                  (in: Unfold[F, I])
-                 (testGenerator: I => F[List[TestError]])
-                 (implicit F: Monad[F]): F[List[TestError]] = {
+                 (testGenerator: I => F[TestResult])
+                 (implicit F: Monad[F]): F[TestResult] = {
     F.join(exhaustiveUR[F, F, I](in)(testGenerator))
   }
 
   def runTests[F[_]: Applicative, G[_]: Applicative, I](
-    testGenerator: I => F[List[TestError]]
-  ): Fold[G, I, F[List[TestError]]] =
-    new Fold[G, I, F[List[TestError]]] {
-      type S = List[F[List[TestError]]]
+    testGenerator: I => F[TestResult]
+  ): Fold[G, I, F[TestResult]] =
+    new Fold[G, I, F[TestResult]] {
+      type S = List[F[TestResult]]
       val start = Nil
-      def step(s: List[F[List[TestError]]], i: I): G[List[F[List[TestError]]]] =
+      def step(s: List[F[TestResult]], i: I): G[List[F[TestResult]]] =
         (testGenerator(i) :: s).pure[G]
-      def end(s: List[F[List[TestError]]]): G[F[List[TestError]]] =
-        s.reverse.traverseM(f => f).pure[G]
+      def end(s: List[F[TestResult]]): G[F[TestResult]] =
+        s.reverse.foldLeft(Success().point[F])(
+          (b, a) => Applicative[F].apply2(b, a)(TestResult.combine)
+        ).pure[G]
     }
 
   def exhaustiveUR[F[_]: Applicative, G[_]: Monad: BindRec, I]
   (in: Unfold[G, I]
-  )(testGenerator: I => F[List[TestError]]
-  ): G[F[List[TestError]]] = {
+  )(testGenerator: I => F[TestResult]
+  ): G[F[TestResult]] = {
     zapFold(in, runTests[F, G, I](testGenerator))
   }
 
   def exhaustiveV[F[_]: Applicative, I]
                  (in: (() => I)*)
-                 (testGenerator: I => F[List[TestError]]): F[List[TestError]] =
+                 (testGenerator: I => F[TestResult]): F[TestResult] =
     exhaustive(in.toList)(testGenerator)
 
   def exhaustiveS[F[_]: Applicative, I]
                  (in: I*)
-                 (testGenerator: I => F[List[TestError]]): F[List[TestError]] =
+                 (testGenerator: I => F[TestResult]): F[TestResult] =
     exhaustiveV(in.map(i => () => i): _*)(testGenerator)
+
 }

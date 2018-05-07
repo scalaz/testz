@@ -15,5 +15,5 @@ The only method to override on `PureSuite` is `test`, the signature
 of which is:
 
 ```scala
-def test[T](test: Test[Function0, T]): T
+def test[T](test: Harness[Function0, T]): T
 ```
