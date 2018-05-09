@@ -28,7 +28,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package testz.runner
+package testz
+package runner
 
 import scala.concurrent.{ExecutionContext, Future}
 
