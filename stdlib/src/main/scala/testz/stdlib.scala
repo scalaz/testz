@@ -38,12 +38,12 @@ import scala.concurrent.{ExecutionContext, Future}
 abstract class PureSuite extends Suite {
   def test[T](test: Test[Function0, T]): T
 
-  def run(implicit ec: ExecutionContext): Future[List[String]] =
-    Future.successful {
-      val buf = new AtomicReference[List[String]](Nil)
-      this.test(PureSuite.makeHarness(buf))(Nil)
-      buf.get
-    }
+  def run(implicit ec: ExecutionContext): Future[List[String]] = {
+    val buf = new AtomicReference[List[String]](Nil)
+    val tester = this.test(PureSuite.makeHarness(buf))
+    tester(Nil)
+    Future.successful(buf.get)
+  }
 }
 
 object PureSuite {
@@ -53,7 +53,7 @@ object PureSuite {
     val _ = buf.updateAndGet(str :: _)
   }
 
-  def makeHarness(buf: AtomicReference[List[String]]): Test[Function0, TestEff[Unit]] =
+  def makeHarness(buf: AtomicReference[List[String]]): Test[Function0, List[String] => Unit] =
     new Test[Function0, TestEff[Unit]] {
       def apply(name: String)(assertion: () => List[TestError]): TestEff[Unit] =
         { (ls: List[String]) =>
@@ -71,6 +71,51 @@ object PureSuite {
           test1(newScopes)
           tests.foreach(test => test(newScopes))
         }
+  }
+}
+
+abstract class ImpureSuite extends Suite {
+  def test[T](test: Test[λ[A => () => Future[A]], () => Future[T]]): T
+
+  def run(implicit ec: ExecutionContext): Future[List[String]] = {
+    val buf = new AtomicReference[List[String]](Nil)
+    for {
+      _ <- this.test(ImpureSuite.makeHarness(buf))(Nil)
+    } yield buf.get
+  }
+}
+
+object ImpureSuite {
+
+  private def add(buf: AtomicReference[List[String]], str: String): Unit = {
+    val _ = buf.updateAndGet(str :: _)
+  }
+
+  def makeHarness(buf: AtomicReference[List[String]])(implicit ec: ExecutionContext): Test[λ[A => () => Future[A]], () => Future[List[String] => Future[Unit]]] =
+    new Test[λ[A => () => Future[A]], () => Future[List[String] => Future[Unit]]] {
+      def apply(name: String)(assertion: () => Future[List[TestError]]): () => Future[List[String] => Future[Unit]] =
+        () => Future.successful { (ls: List[String]) =>
+          val result: Future[List[TestError]] = try {
+            assertion().transform {
+              case scala.util.Failure(t) => scala.util.Success(List(ExceptionThrown(t)))
+              case scala.util.Success(_) => scala.util.Success(Nil)
+            }
+          } catch {
+            case thrown: Exception => Future.successful(List(ExceptionThrown(thrown)))
+          }
+          result.map { r =>
+            add(buf, Suite.printTest(name :: ls, r))
+          }
+        }
+
+      def section(name: String)(test1: () => Future[List[String] => Future[Unit]], tests: () => Future[List[String] => Future[Unit]]*) =
+        (() => Future.successful { (ls: List[String]) =>
+          val newScopes = name :: ls
+          test1().flatMap(_(newScopes)).flatMap { _ =>
+            Future.traverse(tests) (test => test().flatMap(_(newScopes)))
+          }.map(_ => ())
+
+        })
   }
 }
 
