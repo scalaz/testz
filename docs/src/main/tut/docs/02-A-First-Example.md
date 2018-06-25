@@ -13,14 +13,13 @@ It's provided in `testz.stdlib.PureSuite`.
 
 ```tut:silent
 import testz.{PureSuite, Test}
-import testz.stdlib.assertEqual
 import scala.concurrent.ExecutionContext.global
 
 final class MathTests extends PureSuite {
-  def test[T](test: Harness[Function0, T]): T = {
+  def test[T[_]](test: Harness[Id, T]): T[Unit] = {
     test.section("math must")(
-      test("say 1 + 1 == 2") { () =>
-        assertEqual(1 + 1, 2)
+      test("say 1 + 1 == 2") { _ =>
+        assert(1 + 1 == 2)
       }
     )
   }
@@ -39,7 +38,6 @@ I went through a lot there; let's dissect that.
 
 ```tut:silent
 import testz.{PureSuite, Test}
-import testz.stdlib.assertEqual
 import scala.concurrent.ExecutionContext.global
 ```
 
@@ -53,14 +51,10 @@ errors if the two arguments are equal; otherwise it returns a single
 error.
 
 `PureSuite` is the test suite class I'm using. The type of test
-harness it uses is a `Harness[Function0, T]` for all `T`, and it returns a
-`T` at the end. The idea behind this is for the test code to be unaware
+harness it uses is a `Harness[Id, T]` for all `T`, and it returns a
+`T[Unit]` at the end. The idea behind this is for the test code to be unaware
 of what the type `T` will be. So the only way it can return a `T` is to
 use the test harness.
-
-`Function0` (`() => ?`) is then used to wrap assertions so that they
-can be computed on demand; it keeps the harness from evaluating all
-assertions immediately.
 
 ```scala
 final class MathTests extends PureSuite {
@@ -76,7 +70,7 @@ while tests run. Instead, use a class to keep your working set small
 during the run.
 
 ```scala
-def test[T](test: Harness[Function0, T]): T = {
+def test[T[_]](test: Harness[Id, T]): T[Unit] = {
 ```
 
 Here we define a method from `PureSuite` which we will use to define our tests.
@@ -102,11 +96,11 @@ The first parameter is the name of the test. The parameter in the
 second (curried) parameter list is a function `() => TestResult`.
 
 ```scala
-assertEqual(1 + 1, 2)
+assert(1 + 1 === 2)
 ```
 
-Here's the only assertion we've got. Looks fairly self-explanatory.
+Here's the only assertion we've got.
 It'll give you a `TestResult` which contains an error if the two
-arguments aren't equal using `==`.
+arguments aren't equal using `===`; in this case, that'll be a `Success`.
 
 And we're done.
