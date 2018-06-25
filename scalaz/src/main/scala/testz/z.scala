@@ -133,12 +133,6 @@ object z {
       }
       prom.future
 
-      // buf.flatMap { b =>
-      //   TestS.run(this.test[TestS](harness(b)), Nil) >>
-      //     Task.delay(b.get)
-      // }.unsafePerformAsync { f => pr.complete(f.fold(SFailure(_), SSuccess(_))) }
-      // pr.future
-      ???
     }
   }
 }
