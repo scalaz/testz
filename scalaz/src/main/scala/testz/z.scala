@@ -76,10 +76,9 @@ object z {
   abstract class TaskSuite extends Suite {
     type Uses[R] = (R, List[String]) => Task[Unit]
 
-    implicit def contravariantUses: Contravariant[Uses] = new Contravariant[λ[R => (R, List[String]) => Task[Unit]]] {
-      def contramap[A, B](r: (A, List[String]) => Task[Unit])(f: B => A): (B, List[String]) => Task[Unit] = {
+    val contravariantUses: Contravariant[Uses] = new Contravariant[Uses] {
+      def contramap[A, B](r: Uses[A])(f: B => A): Uses[B] =
         (b, ls) => r(f(b), ls)
-      }
     }
 
     def test[T[_]: Contravariant](harness: Harness[Task, T]): T[Unit]
@@ -87,16 +86,8 @@ object z {
     def run(ec: ExecutionContext): Future[List[String]] = {
       val buf = new ListBuffer[String]()
 
-      // def catchExceptions(t: Task[TestResult]): Task[TestResult] = {
-      //   t.attempt.map {
-      //     case \/-(es) =>
-      //       es
-      //     case -\/(th) =>
-      //       ExceptionThrown(th) :: Nil
-      //   }
-      // }
-
       def harness(buf: ListBuffer[String]) = new Harness[Task, λ[R => (R, List[String]) => Task[Unit]]] {
+
         def apply[R](name: String)(assertion: R => Task[TestResult]): Uses[R] =
           (r, sc) => assertion(r).attempt.map {
             case \/-(es) =>
@@ -119,18 +110,18 @@ object z {
           (init: Task[I])
           (cleanup: I => Task[Unit])
           (tests: Uses[(I, R)]
-        ): Uses[R] = { (r, sc) =>
+        ): Uses[R] = (r, sc) =>
           init.flatMap {
             i => tests((i, r), sc).attempt.flatMap(_ => cleanup(i))
           }
-        }
 
         def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] =
-          (rn, sc) => test(f(rn), sc)
+          contravariantUses.contramap(test)(f)
+
       }
 
       val prom = Promise[List[String]]
-      test[Uses](harness(buf)).apply((), Nil).flatMap(_ => Task.delay(buf.result())).unsafePerformAsync {
+      test[Uses](harness(buf))(contravariantUses)((), Nil).flatMap(_ => Task.delay(buf.result())).unsafePerformAsync {
         case -\/(e) => prom.failure(e)
         case \/-(r) => prom.success(r)
       }
