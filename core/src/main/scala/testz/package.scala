@@ -30,5 +30,6 @@
 
 package object testz {
   type Id[A] = A
-  def assert(b: Boolean): TestResult = if (b) Success else Failure.noMessage
+  def assert(b: Boolean): TestResult =
+    if (b) Success else Failure.noMessage
 }

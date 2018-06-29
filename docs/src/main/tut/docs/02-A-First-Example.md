@@ -12,7 +12,7 @@ most basic suite type provided. We'll be using `testz-core`,
 It's provided in `testz.stdlib.PureSuite`.
 
 ```tut:silent
-import testz.{PureSuite, Test}
+import testz.{Id, Harness, PureSuite, assert}
 import scala.concurrent.ExecutionContext.global
 
 final class MathTests extends PureSuite {
@@ -37,24 +37,23 @@ new MathTests().run(global)
 I went through a lot there; let's dissect that.
 
 ```tut:silent
-import testz.{PureSuite, Test}
+import testz.{PureSuite, Harness, assert}
 import scala.concurrent.ExecutionContext.global
 ```
 
-Here I import `Harness[F[_], T]`, the type of test harnesses in testz.
+Here I import `Harness[F[_], T[_]]`, the type of test harnesses in testz.
 Conventionally, test suites are written to extend a test suite class
-with an abstract method that takes a `Test` as a parameter.
+with an abstract method that takes a `Harness` as a parameter.
 
-I also import `assertEqual` from `testz.stdlib`; assertions are just
-lists of errors in testz. `assertEqual` returns an empty list of
-errors if the two arguments are equal; otherwise it returns a single
-error.
+I also import `assert` from `testz`; assertions are just values in testz.
+`assert` returns either `Success()` if its argument is `True`, or
+`Failure(Nil)` otherwise (a failure, with no message).
 
 `PureSuite` is the test suite class I'm using. The type of test
-harness it uses is a `Harness[Id, T]` for all `T`, and it returns a
+harness it uses is a `Harness[Id, T]` for all `T[_]`, and it returns a
 `T[Unit]` at the end. The idea behind this is for the test code to be unaware
-of what the type `T` will be. So the only way it can return a `T` is to
-use the test harness.
+of what the type `T[A]` will be. So the only way it can return a `T[Unit]` is
+to use the test harness.
 
 ```scala
 final class MathTests extends PureSuite {

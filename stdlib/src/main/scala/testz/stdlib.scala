@@ -57,7 +57,7 @@ object PureSuite {
         (name: String)
         (assertions: R => TestResult
       ): Uses[R] =
-        (r, scope) => buf += Suite.printTest(scope, assertions(r))
+        (r, scope) => buf += Suite.printTest(name :: scope, assertions(r))
 
       def bracket[R, I]
         (init: I)
@@ -102,7 +102,7 @@ object ImpureSuite {
     new Harness[FakeTask, Uses] {
       def apply[R](name: String)(assertion: R => FakeTask[TestResult]): Uses[R] =
         (r, sc) => assertion(r)().map { es =>
-          buf += Suite.printTest(sc, es)
+          buf += Suite.printTest(name :: sc, es)
           ()
         }(ec)
 
