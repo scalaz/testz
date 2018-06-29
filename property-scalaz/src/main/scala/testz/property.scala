@@ -106,7 +106,7 @@ object property {
         (testGenerator(i) :: s).pure[G]
       def end(s: List[F[TestResult]]): G[F[TestResult]] =
         s.reverse.foldLeft(Success().point[F])(
-          (b, a) => Applicative[F].apply2(b, a)(TestResult.combine)
+          Applicative[F].apply2(_, _)(TestResult.combine)
         ).pure[G]
     }
 
