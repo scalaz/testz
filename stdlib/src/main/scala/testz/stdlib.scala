@@ -76,6 +76,10 @@ object PureSuite {
           test1(r, newScope)
           tests.foreach(_(r, newScope))
       }
+
+      def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] = {
+        (rn, sc) => test(f(rn), sc)
+      }
     }
 }
 
@@ -130,6 +134,10 @@ object ImpureSuite {
         init().flatMap {
           i => saneTransform(tests((i, r), sc))(_ => cleanup(i)())(ec)
         }(ec)
+      }
+
+      def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] = {
+        (rn, sc) => test(f(rn), sc)
       }
 
     }

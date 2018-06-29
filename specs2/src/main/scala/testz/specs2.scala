@@ -45,7 +45,7 @@ object specs2 {
           (assertion: R => () => TestResult)
           : R => Fragment = {
           // todo: catch exceptions
-          r => name in (assertion(r) must_== Nil)
+          r => name in (assertion(r) must_== Success)
         }
         def section[R]
           (name: String)
@@ -69,6 +69,9 @@ object specs2 {
           val f = tests((i, r))
           cleanup(i)
           f
+        }
+        def mapResource[R, RN](test: R => Fragment)(f: RN => R): RN => Fragment = {
+          rn => test(f(rn))
         }
     }
 

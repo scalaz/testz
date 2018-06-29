@@ -77,7 +77,7 @@ object property {
     for {
       seed <- fromTask(Task.delay(
         Array.fill[Array[Int]](10)(
-          Array(System.currentTimeMillis.toInt, (System.currentTimeMillis >> 4).toInt))
+          Array(System.nanoTime.toInt.toInt))
       ))
       errs <- fromSeed[F, I]((seed.flatten, 1))(gen)(testGenerator)(numTestCases)
     } yield errs

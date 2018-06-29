@@ -37,6 +37,7 @@ trait Harness[F[_], T[_]] {
     (cleanup: I => F[Unit])
     (tests: T[(I, R)]): T[R]
   def section[R](name: String)(test1: T[R], tests: T[R]*): T[R]
+  def mapResource[R, RN](test: T[R])(f: RN => R): T[RN]
 }
 
 /**
@@ -80,3 +81,4 @@ object TestResult {
       case _ => Success
     }
 }
+

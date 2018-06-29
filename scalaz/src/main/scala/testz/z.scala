@@ -124,6 +124,9 @@ object z {
             i => tests((i, r), sc).attempt.flatMap(_ => cleanup(i))
           }
         }
+
+        def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] =
+          (rn, sc) => test(f(rn), sc)
       }
 
       val prom = Promise[List[String]]
