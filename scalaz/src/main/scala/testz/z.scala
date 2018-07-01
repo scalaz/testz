@@ -74,12 +74,7 @@ object z {
   }
 
   abstract class TaskSuite extends Suite {
-    type Uses[R] = (R, List[String]) => Task[Unit]
-
-    val contravariantUses: Contravariant[Uses] = new Contravariant[Uses] {
-      def contramap[A, B](r: Uses[A])(f: B => A): Uses[B] =
-        (b, ls) => r(f(b), ls)
-    }
+    import TaskSuite._
 
     def test[T[_]: Contravariant](harness: Harness[Task, T]): T[Unit]
 
@@ -127,6 +122,15 @@ object z {
       }
       prom.future
 
+    }
+  }
+
+  object TaskSuite {
+    type Uses[R] = (R, List[String]) => Task[Unit]
+
+    val contravariantUses: Contravariant[Uses] = new Contravariant[Uses] {
+      def contramap[A, B](r: Uses[A])(f: B => A): Uses[B] =
+        (b, ls) => r(f(b), ls)
     }
   }
 
