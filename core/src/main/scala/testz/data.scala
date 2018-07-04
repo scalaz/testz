@@ -30,14 +30,16 @@
 
 package testz
 
-trait Harness[F[_], T[_]] {
-  def apply[R](name: String)(assertions: R => F[TestResult]): T[R]
-  def bracket[R, I]
-    (init: F[I])
-    (cleanup: I => F[Unit])
-    (tests: T[(I, R)]): T[R]
-  def section[R](name: String)(test1: T[R], tests: T[R]*): T[R]
-  def mapResource[R, RN](test: T[R])(f: RN => R): T[RN]
+/**
+  The most boring `Harness` you can think of:
+  pure tests with no resources.
+  Any harness type should be convertible to a `BareHarness`;
+  it's the lingua franca of tests. If you write tests using
+  `BareHarness`, they can be adapted to work with any suite type later.
+*/
+abstract class BareHarness[T] {
+  def apply(name: String)(assertions: () => TestResult): T
+  def section(name: String)(test1: T, tests: T*): T
 }
 
 /**
@@ -47,7 +49,7 @@ trait Harness[F[_], T[_]] {
   throwables. The empty case of `Failure` is deliberate;
   it's the user's choice whether to add failure information.
 */
-sealed trait TestResult
+sealed abstract class TestResult
 
 final class Failure(val failures: List[Throwable Either String]) extends TestResult
 object Failure {

@@ -36,14 +36,28 @@ import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 
+// a `Harness` where tests are able to access and allocate
+// some kind of resource `R`, and they have no effects.
+abstract class PureHarness[T[_]] {
+  def apply[R](name: String)(assertions: R => TestResult): T[R]
+  def section[R](name: String)(test1: T[R], tests: T[R]*): T[R]
+  def mapResource[R, RN](tr: T[R])(f: RN => R): T[RN]
+  def allocate[R, I]
+    (init: () => I)
+    (tests: T[(I, R)]): T[R]
+}
+
 abstract class PureSuite extends Suite {
   import PureSuite._
 
-  def test[T[_]](test: Harness[Id, T]): T[Unit]
+  def test[T[_]](harness: PureHarness[T]): T[Unit]
+
+  def harness(out: ListBuffer[String]): PureHarness[Uses] =
+    PureSuite.harness(out)
 
   def run(ec: ExecutionContext): Future[List[String]] = {
     val buf = new ListBuffer[String]()
-    this.test[Uses](PureSuite.makeHarness(buf))((), Nil)
+    this.test[Uses](harness(buf))((), Nil)
     Future.successful(buf.result())
   }
 }
@@ -51,23 +65,15 @@ abstract class PureSuite extends Suite {
 object PureSuite {
   type Uses[R] = (R, List[String]) => Unit
 
-  def makeHarness(buf: ListBuffer[String]): Harness[Id, Uses] =
-    new Harness[Id, Uses] {
-      def apply[R]
+  def harness(buf: ListBuffer[String]): PureHarness[Uses] =
+    new PureHarness[Uses] {
+      override def apply[R]
         (name: String)
         (assertions: R => TestResult
       ): Uses[R] =
         (r, scope) => buf += Suite.printTest(name :: scope, assertions(r))
 
-      def bracket[R, I]
-        (init: I)
-        (cleanup: I => Unit)
-        (tests: ((I, R), List[String]) => Unit
-      ): Uses[R] =
-        // cleanup is never called, because all tests are pure.
-        (r, sc) => tests((init, r), sc)
-
-      def section[R]
+      override def section[R]
         (name: String)
         (test1: Uses[R], tests: Uses[R]*
       ): Uses[R] = {
@@ -77,22 +83,36 @@ object PureSuite {
           tests.foreach(_(r, newScope))
       }
 
-      def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] = {
+      override def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] = {
         (rn, sc) => test(f(rn), sc)
       }
+
+      override def allocate[R, I]
+        (init: () => I)
+        (tests: ((I, R), List[String]) => Unit
+      ): Uses[R] =
+        (r, sc) => tests((init(), r), sc)
     }
+
+}
+
+trait ImpureHarness[F[_], T[_]] {
+  def test[R]
+    (name: String)
+    (assertions: R => Future[TestResult]
 }
 
 abstract class ImpureSuite extends Suite {
   import ImpureSuite._
 
-  def test[T[_]](test: Harness[FakeTask, T]): T[Unit]
+  def test[T[_]](test: UsingHarness[FakeTask, T]): T[Unit]
 
   def run(ec: ExecutionContext): Future[List[String]] = {
     val buf = new ListBuffer[String]()
 
-    test(makeHarness(buf, ec))((), Nil)
-      .map(_ => buf.result())(ec)
+    // test(makeHarness(buf, ec))((), Nil)
+      // .map(_ => buf.result())(ec)
+    Future.successful(buf.result())
   }
 }
 
@@ -102,8 +122,8 @@ object ImpureSuite {
 
   type FakeTask[A] = () => Future[A]
 
-  def makeHarness(buf: ListBuffer[String], ec: ExecutionContext): Harness[FakeTask, Uses] =
-    new Harness[FakeTask, Uses] {
+  def harness(buf: ListBuffer[String], ec: ExecutionContext): UsingHarness[FakeTask, Uses] =
+    new UsingHarness[FakeTask, Uses] {
       def apply[R](name: String)(assertion: R => FakeTask[TestResult]): Uses[R] =
         (r, sc) => assertion(r)().map { es =>
           buf += Suite.printTest(name :: sc, es)
@@ -118,7 +138,14 @@ object ImpureSuite {
           )(ec).map(_ => ())(ec)
       }
 
-      def saneTransform[A, B](fut: Future[A])(f: Try[A] => Future[B])(ec: ExecutionContext): Future[B] = {
+      def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] = {
+        (rn, sc) => test(f(rn), sc)
+      }
+    }
+
+  def bracket(ec: ExecutionContext): Bracket[FakeTask, Uses] =
+    new Bracket[FakeTask, Uses] {
+      private def saneTransform[A, B](fut: Future[A])(f: Try[A] => Future[B])(ec: ExecutionContext): Future[B] = {
         val prom = Promise[B]
         fut.onComplete {
           t => prom.completeWith(f(t))
@@ -126,7 +153,7 @@ object ImpureSuite {
         prom.future
       }
 
-      def bracket[R, I]
+      def apply[R, I]
         (init: FakeTask[I])
         (cleanup: I => FakeTask[Unit])
         (tests: Uses[(I, R)]
@@ -135,10 +162,5 @@ object ImpureSuite {
           i => saneTransform(tests((i, r), sc))(_ => cleanup(i)())(ec)
         }(ec)
       }
-
-      def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] = {
-        (rn, sc) => test(f(rn), sc)
-      }
-
     }
 }

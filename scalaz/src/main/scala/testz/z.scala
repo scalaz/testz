@@ -76,7 +76,7 @@ object z {
   abstract class TaskSuite extends Suite {
     import TaskSuite._
 
-    def test[T[_]: Contravariant](harness: Harness[Task, T]): T[Unit]
+    def test[T[_]: Contravariant](harness: UsingHarness[Task, T]): T[Unit]
 
     def run(ec: ExecutionContext): Future[List[String]] = {
       val buf = new ListBuffer[String]()
@@ -133,5 +133,25 @@ object z {
         (b, ls) => r(f(b), ls)
     }
   }
+
+  implicit final class zusingHarnessOps[F[_], T[_]](val self: UsingHarness[F, T]) {
+    def contramapK[G[_]](trans: G ~> F): UsingHarness[G, T] = new UsingHarness[G, T] {
+      def apply[R](name: String)(assertions: R => G[TestResult]): T[R] =
+        self(name)(r => trans(assertions(r)))
+      def section[R](name: String)(test1: T[R], tests: T[R]*): T[R] =
+        self.section(name)(test1, tests)
+      def mapResource[R, RN](tr: T[R])(f: RN => R): T[RN]
+        self.mapResource(tr)(f)
+    }
+  }
+
+  implicit final class zallocateOps[F[_], T[_]](val self: Allocate[F, T]) {
+    def contramapK[G[_]](trans: G ~> F): Allocate[G, T] = new Allocate[G, T] {
+      def apply[R, I]
+        (init: G[I])
+        (tests: T[(I, R)]): T[R] = self(trans(init))(tests)
+    }
+  }
+
 
 }
