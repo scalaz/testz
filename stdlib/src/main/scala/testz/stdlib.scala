@@ -99,7 +99,11 @@ object PureSuite {
 trait ImpureHarness[F[_], T[_]] {
   def test[R]
     (name: String)
-    (assertions: R => Future[TestResult]
+    (assertions: R => Future[TestResult]): T[R]
+  def section[R]
+    (name: String)
+    (test1: T[R], tests: Uses[R]*
+  ): T[R]
 }
 
 abstract class ImpureSuite extends Suite {
