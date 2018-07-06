@@ -30,8 +30,6 @@
 
 package testz
 
-import runner._
-
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future, Promise}
 
@@ -44,7 +42,7 @@ object z {
    * run an Unfold using a Fold, taking stack-safety from the `F`.
    */
   final def zapFold[F[_], A, B](unfold: Unfold[F, A], fold: Fold[F, A, B])
-                              (implicit F: BindRec[F]): F[B] = {
+                               (implicit F: BindRec[F]): F[B] = {
     def go(foldS: fold.S, unfoldS: unfold.S): F[(fold.S, unfold.S) \/ B] = for {
       nextU <- unfold.step(unfoldS)
       res <- nextU.cata(
@@ -65,7 +63,7 @@ object z {
     case (f, s) if f eq s => true
     case (Success, Success) => true
     case (f1: Failure, f2: Failure) => f1.failures == f2.failures
-    case _ => false // I don't care about comparing Throwable for equality.
+    case _ => false
   }
 
   implicit val monoidTestResult: Monoid[TestResult] = new Monoid[TestResult] {
@@ -73,85 +71,83 @@ object z {
     def append(f: TestResult, s: => TestResult): TestResult = TestResult.combine(f, s)
   }
 
+  abstract class TaskHarness[T[_]] { self =>
+    def test[R](name: String)(t: R => Task[TestResult]): T[R]
+
+    def section[R](name: String)(tests1: T[R], testss: T[R]*): T[R]
+
+    def bracket[R, I]
+      (init: Task[I])
+      (cleanup: I => Task[Unit])
+      (tests: T[(I, R)]
+    ): T[R]
+
+    def toHarness[R]: Harness[T[R]] = new Harness[T[R]] {
+      def test(name: String)(t: () => TestResult): T[R] =
+        self.test[R](name)(_ => Task.delay(t()))
+      def section(name: String)(tests1: T[R], testss: T[R]*): T[R] =
+        self.section(name)(tests1, testss: _*)
+    }
+  }
+
   abstract class TaskSuite extends Suite {
     import TaskSuite._
 
-    def test[T[_]: Contravariant](harness: UsingHarness[Task, T]): T[Unit]
+    def test[T[_]: Contravariant](harness: TaskHarness[T]): T[Unit]
 
     def run(ec: ExecutionContext): Future[List[String]] = {
       val buf = new ListBuffer[String]()
-
-      def harness(buf: ListBuffer[String]) = new Harness[Task, λ[R => (R, List[String]) => Task[Unit]]] {
-
-        def apply[R](name: String)(assertion: R => Task[TestResult]): Uses[R] =
-          (r, sc) => assertion(r).attempt.map {
-            case \/-(es) =>
-              buf += Suite.printTest(sc, es)
-              ()
-            case -\/(e) =>
-              buf += Suite.printTest(sc, Failure.error(e))
-              ()
-          }
-
-        def section[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
-          (r, sc) =>
-            val newScope = name :: sc
-            test1(r, newScope).flatMap(_ =>
-              tests.toList.traverse(_(r, newScope))
-            ).void
-        }
-
-        def bracket[R, I]
-          (init: Task[I])
-          (cleanup: I => Task[Unit])
-          (tests: Uses[(I, R)]
-        ): Uses[R] = (r, sc) =>
-          init.flatMap {
-            i => tests((i, r), sc).attempt.flatMap(_ => cleanup(i))
-          }
-
-        def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] =
-          contravariantUses.contramap(test)(f)
-
-      }
-
       val prom = Promise[List[String]]
-      test[Uses](harness(buf))(contravariantUses)((), Nil).flatMap(_ => Task.delay(buf.result())).unsafePerformAsync {
+      test[Uses](harness(buf))(contravariantUses)((), Nil).unsafePerformAsync {
         case -\/(e) => prom.failure(e)
-        case \/-(r) => prom.success(r)
+        case \/-(_) => prom.success(buf.result())
       }
       prom.future
-
     }
   }
 
   object TaskSuite {
     type Uses[R] = (R, List[String]) => Task[Unit]
 
+    // incoherent if implicit. only locally visible
+    // implicitly in the `test[T[_]]` method, though.
+    // a cheap workaround to using a newtype.
     val contravariantUses: Contravariant[Uses] = new Contravariant[Uses] {
       def contramap[A, B](r: Uses[A])(f: B => A): Uses[B] =
         (b, ls) => r(f(b), ls)
     }
-  }
 
-  implicit final class zusingHarnessOps[F[_], T[_]](val self: UsingHarness[F, T]) {
-    def contramapK[G[_]](trans: G ~> F): UsingHarness[G, T] = new UsingHarness[G, T] {
-      def apply[R](name: String)(assertions: R => G[TestResult]): T[R] =
-        self(name)(r => trans(assertions(r)))
-      def section[R](name: String)(test1: T[R], tests: T[R]*): T[R] =
-        self.section(name)(test1, tests)
-      def mapResource[R, RN](tr: T[R])(f: RN => R): T[RN]
-        self.mapResource(tr)(f)
+    def harness(buf: ListBuffer[String]) = new TaskHarness[Uses] {
+      def test[R](name: String)(assertion: R => Task[TestResult]): Uses[R] =
+        (r, sc) => assertion(r).attempt.map {
+          case \/-(es) =>
+            buf += Suite.printTest(sc, es)
+            ()
+          case -\/(e) =>
+            buf += Suite.printTest(sc, Failure.error(e))
+            ()
+        }
+
+      def section[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
+        (r, sc) =>
+          val newScope = name :: sc
+          test1(r, newScope).flatMap(_ =>
+            tests.toList.traverse(_(r, newScope))
+          ).void
+      }
+
+      def bracket[R, I]
+        (init: Task[I])
+        (cleanup: I => Task[Unit])
+        (tests: Uses[(I, R)]
+      ): Uses[R] = (r, sc) =>
+        init.flatMap {
+          i => tests((i, r), sc).attempt.flatMap(_ => cleanup(i))
+        }
+
+      def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] =
+        contravariantUses.contramap(test)(f)
     }
   }
-
-  implicit final class zallocateOps[F[_], T[_]](val self: Allocate[F, T]) {
-    def contramapK[G[_]](trans: G ~> F): Allocate[G, T] = new Allocate[G, T] {
-      def apply[R, I]
-        (init: G[I])
-        (tests: T[(I, R)]): T[R] = self(trans(init))(tests)
-    }
-  }
-
 
 }

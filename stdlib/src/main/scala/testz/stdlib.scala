@@ -30,21 +30,34 @@
 
 package testz
 
-import testz.runner._
-
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 
 // a `Harness` where tests are able to access and allocate
 // some kind of resource `R`, and they have no effects.
-abstract class PureHarness[T[_]] {
+abstract class PureHarness[T[_]] { self =>
   def test[R](name: String)(assertions: R => TestResult): T[R]
   def section[R](name: String)(test1: T[R], tests: T[R]*): T[R]
   def mapResource[R, RN](tr: T[R])(f: RN => R): T[RN]
   def allocate[R, I]
     (init: () => I)
     (tests: T[(I, R)]): T[R]
+
+ def toHarness[R]: Harness[T[R]] = new Harness[T[R]]{
+    def test
+      (name: String)
+      (assertions: () => TestResult)
+      : T[R] =
+        self.test[R](name)(_ => assertions())
+
+    def section
+      (name: String)
+      (test1: T[R], tests: T[R]*)
+      : T[R] =
+        self.section(name)(test1, tests: _*)
+  }
+
 }
 
 abstract class PureSuite extends Suite {
@@ -114,7 +127,7 @@ trait ImpureHarness[T[_]] { self =>
     (tests: T[(I, R)]
   ): T[R]
 
-  def toBareHarness[R]: BareHarness[T[R]] = new BareHarness[T[R]]{
+ def toHarness[R]: Harness[T[R]] = new Harness[T[R]]{
     def test
       (name: String)
       (assertions: () => TestResult)
@@ -134,6 +147,9 @@ abstract class ImpureSuite extends Suite {
   import ImpureSuite._
 
   def test[T[_]](harness: ImpureHarness[T]): T[Unit]
+
+  def harness(out: ListBuffer[String], ec: ExecutionContext): ImpureHarness[Uses] =
+    ImpureSuite.harness(out, ec)
 
   def run(ec: ExecutionContext): Future[List[String]] = {
     val buf = new ListBuffer[String]()

@@ -29,11 +29,23 @@
  */
 
 package testz
-package runner
 
-import java.lang.StringBuilder
+import scala.concurrent.{ExecutionContext, Future}
 
-private[testz] object util {
+trait Suite {
+  def run(ec: ExecutionContext): Future[List[String]]
+}
+
+object Suite {
+  def printScope(scope: List[String]): String = {
+    fastConcatDelim(scope.reverse.asInstanceOf[::[String]], "->")
+  }
+
+  def printTest(scope: List[String], out: TestResult) = out match {
+    case Success => printScope("succeeded\n" :: scope)
+    case _       => printScope("failed\n" :: scope)
+  }
+
   def fastConcat(strs: List[String]): String = strs match {
     case ss: ::[String] => fastConcatDelim(ss, "")
     case _: Nil.type => ""

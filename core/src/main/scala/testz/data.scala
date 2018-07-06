@@ -37,7 +37,7 @@ package testz
   it's the lingua franca of tests. If you write tests using
   `BareHarness`, they can be adapted to work with any suite type later.
 */
-abstract class BareHarness[T] {
+abstract class Harness[T] {
   def test
     (name: String)
     (assertions: () => TestResult)
