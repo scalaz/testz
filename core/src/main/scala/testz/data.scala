@@ -38,8 +38,15 @@ package testz
   `BareHarness`, they can be adapted to work with any suite type later.
 */
 abstract class BareHarness[T] {
-  def apply(name: String)(assertions: () => TestResult): T
-  def section(name: String)(test1: T, tests: T*): T
+  def test
+    (name: String)
+    (assertions: () => TestResult)
+    : T
+
+  def section
+    (name: String)
+    (test1: T, tests: T*)
+    : T
 }
 
 /**
