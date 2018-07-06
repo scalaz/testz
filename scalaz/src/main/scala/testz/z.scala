@@ -93,12 +93,12 @@ object z {
   abstract class TaskSuite extends Suite {
     import TaskSuite._
 
-    def test[T[_]: Contravariant](harness: TaskHarness[T]): T[Unit]
+    def tests[T[_]: Contravariant](harness: TaskHarness[T]): T[Unit]
 
     def run(ec: ExecutionContext): Future[List[String]] = {
       val buf = new ListBuffer[String]()
       val prom = Promise[List[String]]
-      test[Uses](harness(buf))(contravariantUses)((), Nil).unsafePerformAsync {
+      tests[Uses](harness(buf))(contravariantUses)((), Nil).unsafePerformAsync {
         case -\/(e) => prom.failure(e)
         case \/-(_) => prom.success(buf.result())
       }

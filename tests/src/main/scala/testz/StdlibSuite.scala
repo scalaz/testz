@@ -31,8 +31,9 @@
 package testz
 
 final class StdlibSuite extends PureSuite {
-  def test[T[_]](test: Harness[Id, T]): T[Unit] =
-    test.section("assert")(
+  def tests[T[_]](harness: PureHarness[T]): T[Unit] = {
+    import harness._
+    section("assert")(
       test("success") { _ =>
         if (assert(true) == Success) Success
         else Failure.noMessage
@@ -42,4 +43,5 @@ final class StdlibSuite extends PureSuite {
         else Failure.noMessage
       }
     )
+  }
 }

@@ -16,7 +16,7 @@ import testz.{Id, Harness, PureSuite, assert}
 import scala.concurrent.ExecutionContext.global
 
 final class MathTests extends PureSuite {
-  def test[T[_]](test: Harness[Id, T]): T[Unit] = {
+  def tests[T[_]](test: PureHarness[T]): T[Unit] = {
     test.section("math must")(
       test("say 1 + 1 == 2") { _ =>
         assert(1 + 1 == 2)
@@ -69,7 +69,7 @@ while tests run. Instead, use a class to keep your working set small
 during the run.
 
 ```scala
-def test[T[_]](test: Harness[Id, T]): T[Unit] = {
+def tests[T[_]](test: PureHarness[T]): T[Unit] = {
 ```
 
 Here we define a method from `PureSuite` which we will use to define our tests.

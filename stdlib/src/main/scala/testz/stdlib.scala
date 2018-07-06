@@ -63,14 +63,14 @@ abstract class PureHarness[T[_]] { self =>
 abstract class PureSuite extends Suite {
   import PureSuite._
 
-  def test[T[_]](harness: PureHarness[T]): T[Unit]
+  def tests[T[_]](harness: PureHarness[T]): T[Unit]
 
   def harness(out: ListBuffer[String]): PureHarness[Uses] =
     PureSuite.harness(out)
 
   def run(ec: ExecutionContext): Future[List[String]] = {
     val buf = new ListBuffer[String]()
-    this.test[Uses](harness(buf))((), Nil)
+    tests[Uses](harness(buf))((), Nil)
     Future.successful(buf.result())
   }
 }
@@ -146,7 +146,7 @@ trait ImpureHarness[T[_]] { self =>
 abstract class ImpureSuite extends Suite {
   import ImpureSuite._
 
-  def test[T[_]](harness: ImpureHarness[T]): T[Unit]
+  def tests[T[_]](harness: ImpureHarness[T]): T[Unit]
 
   def harness(out: ListBuffer[String], ec: ExecutionContext): ImpureHarness[Uses] =
     ImpureSuite.harness(out, ec)
@@ -154,7 +154,7 @@ abstract class ImpureSuite extends Suite {
   def run(ec: ExecutionContext): Future[List[String]] = {
     val buf = new ListBuffer[String]()
 
-    test(harness(buf, ec))((), Nil)
+    tests(harness(buf, ec))((), Nil)
       .map(_ => buf.result())(ec)
   }
 }

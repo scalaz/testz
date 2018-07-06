@@ -40,8 +40,9 @@ final class ExhaustiveSuite extends PureSuite {
       Unfold((1 to 5).toList.map(_ + n): _*)
   }
 
-  def test[T[_]](test: Harness[Id, T]): T[Unit] =
-    test.section("exhaustives")(
+  def tests[T[_]](harness: PureHarness[T]): T[Unit] = {
+    import harness._
+    section("exhaustives")(
       test("exhaustiveS int range") { _ =>
         val actualErrors = exhaustiveS[Id, Int](1, 2, 3, 4, 5, 6)(i =>
           if (i === 3) Failure.string("not equal")
@@ -56,7 +57,7 @@ final class ExhaustiveSuite extends PureSuite {
           else Success()
         }
         assert(actualErrors === Failure.strings(List.fill(6)("equal")))
-
       }
     )
+  }
 }

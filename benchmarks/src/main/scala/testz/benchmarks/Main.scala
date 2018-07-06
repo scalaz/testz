@@ -43,8 +43,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object Main {
   val testPureSuite = new PureSuite {
-    def test[T[_]](test: Harness[Id, T]): T[Unit] =
-      test.section("some tests")(
+    def tests[T[_]](harness: PureHarness[T]): T[Unit] = {
+      import harness._
+      section("some tests")(
         test("this test fails")(_ =>
           assert(1 === 2)
         ),
@@ -52,14 +53,16 @@ object Main {
           assert(1 === 1)
         )
       )
+    }
   }
 
   val testTaskSuite = new TaskSuite {
-    def test[T[_]: Contravariant](test: Harness[Task, T]): T[Unit] = {
+    def tests[T[_]: Contravariant](harness: TaskHarness[T]): T[Unit] = {
+      import harness._
       def doMoreTests(ts: T[Unit], i: Int): T[Unit] = {
         if (i == 0) ts
         else doMoreTests(
-          test.section(s"test section $i")(
+          section(s"test section $i")(
             ts,
             test(s"this is test $i-1")(_ =>
               assert(1 === 1).pure[Task]
@@ -71,7 +74,7 @@ object Main {
         )
       }
       doMoreTests(
-        test.section("root tests")(
+        section("root tests")(
           test("this test wins")(_ =>
             assert(1 === 1).pure[Task]
           )

@@ -14,5 +14,5 @@ The only method to override on `PureSuite` is `test`, the signature
 of which is:
 
 ```scala
-def test[T[_]](test: Harness[Id, T]): T[Unit]
+def tests[T[_]](test: PureHarness[Id, T]): T[Unit]
 ```
