@@ -31,11 +31,16 @@
 package testz
 package runner
 
-import scala.concurrent.{ExecutionContext, Future}
+import java.io.{BufferedOutputStream, FileDescriptor, FileOutputStream}
+import java.nio.charset.StandardCharsets
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.{Failure, Success}
 
 object Runner {
-  // Configuration.
-  // Forwards-compatible by construction.
+  /**
+   * Configuration.
+   * Forwards-compatible by construction.
+   */
   final class Config private[Runner](private val _chunkSize: Int, _output: String => Unit) {
     def withChunkSize(newChunkSize: Int) = new Config(newChunkSize, _output)
     def withOutput(newOutput: String => Unit) = new Config(_chunkSize, newOutput)
@@ -43,7 +48,29 @@ object Runner {
     def output: String => Unit = _output
   }
 
-  val defaultConfig: Config = new Config(_chunkSize = 100, _output = print(_))
+  def bufferedStdOut(bufferSize: Int): (String => Unit, () => Unit) = {
+    val out = new BufferedOutputStream(new FileOutputStream(FileDescriptor.out), bufferSize)
+    // System.setOut(null)
+    (str =>
+      if (!str.isEmpty) {
+        out.write(str.getBytes(StandardCharsets.UTF_8), 0, str.length)
+      }, () => out.flush())
+  }
+
+  val defaultChunkSize = 100
+  val defaultOutput = Console.print(_: String)
+
+  /**
+   * It seems sub-optimal to chunk at 100 suites;
+   * in fact, it seems sub-optimal to chunk at all.
+   * We're optimizing for quick suites, though.
+   * If you have long-running suites, the chunking will hopefully
+   * not interfere much because of how large the chunks are.
+   * Right now, the chunks aren't very useful. They would be
+   * if we ran suites in parallel.
+   */
+  val defaultConfig: Config =
+    new Config(_chunkSize = defaultChunkSize, _output = defaultOutput)
 
   @scala.annotation.tailrec
   private def printStrs(strs: List[String], output: String => Unit): Unit = strs match {
@@ -52,20 +79,98 @@ object Runner {
   }
   @scala.annotation.tailrec
   private def printStrss(strs: List[List[String]], output: String => Unit): Unit = strs match {
-    case xs: ::[List[String]] => printStrs(xs.head, output); output("\n"); printStrss(xs.tail, output)
+    case xs: ::[List[String]] =>
+      if (xs.head.nonEmpty) {
+        printStrs(xs.head, output)
+        output("\n")
+      }
+      printStrss(xs.tail, output)
     case _ =>
   }
 
-  def configured(suites: List[() => Suite], config: Config, ec: ExecutionContext): Future[Unit] = Future {
+  def grouped[A](it: Iterator[A], groupSize: Int): Iterator[Iterator[A]] =
+    new Iterator[Iterator[A]] {
+      def hasNext = it.hasNext
+      def next = new Iterator[A] {
+        var cur = 0
+        def hasNext = it.hasNext && cur < groupSize
+        def next = {
+          cur = cur + 1
+          it.next
+        }
+      }
+    }
+
+  /**
+   * This is the meat of the runner.
+   * It takes a list of `() => Suite` and runs all of them in
+   * sequence, taking cues from a passed `Config` value.
+   */
+  def configured(suites: List[() => Suite], config: Config, ec: ExecutionContext): Future[Unit] = {
     import config._
     val startTime = System.currentTimeMillis
-    Future.traverse(suites.grouped(chunkSize).toList) { chunk =>
-      Future.traverse(chunk)(_().run(ec))(collection.breakOut, ec).map(printStrss(_, config.output))(ec)
-    }(collection.breakOut, ec).map { r =>
-      val endTime = System.currentTimeMillis
-      config.output(s"Testing took ${endTime - startTime} ms")
+    val run = traverseFutureIterator(grouped(suites.iterator, chunkSize)) { chunk =>
+      val runSuite = traverseFutureIterator(chunk)(_().run(ec))(ec)
+      runSuite.value match {
+        case Some(Success(a)) =>
+          printStrss(a, config.output)
+          Future.unit
+        case Some(Failure(e)) =>
+          Future.failed(e)
+        case None =>
+          runSuite.map(a => printStrss(a, config.output))(ec)
+      }
     }(ec)
-  }(ec).flatten
+    if (run.isCompleted) {
+      // hot path: testing was fully synchronous,
+      // so we don't need to submit to the ExecutionContext.
+      val endTime = System.currentTimeMillis
+      config.output("Testing took " + String.valueOf(endTime - startTime) + "ms (synchronously)\n")
+      Future.unit
+    } else {
+      // slow path
+      run.map { _ =>
+        val endTime = System.currentTimeMillis
+        config.output("Testing took " + String.valueOf(endTime - startTime) + "ms (asynchronously) \n")
+      }(ec)
+    }
+  }
+
+  def traverseFutureIterator[A, B](fa: Iterator[A])(f: A => Future[B])(ec: ExecutionContext): Future[List[B]] =
+    if (!fa.hasNext) Future.successful(Nil)
+    else {
+      val lb = new scala.collection.mutable.ListBuffer[B]
+      val mapped = fa.map(f)
+      val outProm = Promise[List[B]]
+      val run = sequenceFutureIterator(mapped, mapped.next, lb)(ec)
+      if (run.isCompleted) {
+        outProm.success(lb.result())
+      } else {
+        run.onComplete(_ => outProm.success(lb.result()))(ec)
+      }
+      outProm.future
+    }
+
+  def sequenceFutureIterator[A, B]
+    (fa: Iterator[Future[A]], next: Future[A], lb: scala.collection.mutable.ListBuffer[A])(ec: ExecutionContext)
+  : Future[Unit] = {
+    @scala.annotation.tailrec def inner(next: Future[A], lb: scala.collection.mutable.ListBuffer[A]): Future[Unit] =
+      next.value match {
+        // hot path: no need to suspend to an EC.
+        case Some(Success(a)) =>
+          lb += a
+          if (fa.hasNext) inner(fa.next, lb)
+          else Future.unit
+        case Some(Failure(e)) => Future.failed(e)
+        // slow path: `next` wasn't synchronous, so we suspend to an EC.
+        case None => next.flatMap { a =>
+          lb += a
+          if (fa.hasNext) sequenceFutureIterator(fa, fa.next, lb)(ec)
+          else Future.unit
+        }(ec)
+      }
+    inner(next, lb)
+  }
 
   def apply(suites: List[() => Suite], ec: ExecutionContext): Future[Unit] =
     configured(suites, defaultConfig, ec)

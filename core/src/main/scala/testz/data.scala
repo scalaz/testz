@@ -83,11 +83,12 @@ case object Success extends TestResult {
 
 object TestResult {
   def combine(first: TestResult, second: TestResult): TestResult =
-   (first, second) match {
-      case (fs1: Failure, fs2: Failure) => Failure(fs1.failures ++ fs2.failures)
-      case (fs1: Failure, _) => fs1
-      case (_, fs2: Failure) => fs2
-      case _ => Success
+    first match {
+      case fs1: Failure => second match {
+        case fs2: Failure => Failure(fs1.failures ++ fs2.failures)
+        case _ => fs1
+      }
+      case _ => second
     }
 }
 

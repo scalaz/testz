@@ -30,7 +30,7 @@
 
 package testz
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ListBuffer, WrappedArray}
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 
@@ -93,7 +93,25 @@ object PureSuite {
         (r, sc) =>
           val newScope = name :: sc
           test1(r, newScope)
-          tests.foreach(_(r, newScope))
+          // hot path: we're dealing with arrays here, people,
+          // at least if the user has vararg syntax.
+          // let's not use the stdlib `.foreach` now.
+          if (tests.isInstanceOf[WrappedArray[AnyRef] @unchecked]) {
+            val arr = tests.asInstanceOf[WrappedArray[AnyRef]].array
+            var cur = 0
+            while (cur < arr.length) {
+              arr(cur).asInstanceOf[Uses[R]](r, newScope)
+              cur = cur + 1
+            }
+          } else if (tests.isInstanceOf[::[Uses[R]] @unchecked]) {
+            var cur = tests
+            while (cur.isInstanceOf[::[Uses[R]]]) {
+              cur.head(r, newScope)
+              cur = cur.tail
+            }
+          } else {
+            tests.foreach(_(r, newScope))
+          }
       }
 
       override def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] = {

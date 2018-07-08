@@ -131,6 +131,7 @@ lazy val benchmarks = project.in(file("benchmarks"))
   .settings(name := "testz-benchmarks")
   .settings(standardSettings)
   .enablePlugins(AutomateHeaderPlugin)
+  .enablePlugins(JmhPlugin)
 
 lazy val framework = project.in(file("framework"))
   .dependsOn(core, runner)
