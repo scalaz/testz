@@ -6,6 +6,25 @@ lazy val monocleVersion = "1.4.0"
 lazy val scalazVersion  = "7.2.20"
 lazy val spireVersion   = "0.14.1"
 
+// publishTo in ThisBuild := {
+  // val nexus = "https://oss.sonatype.org/"
+  // if (isSnapshot.value)
+    // Some("snapshots" at nexus + "content/repositories/snapshots")
+  // else
+    // Some("releases" at nexus + "service/local/staging/deploy/maven2")
+// }
+
+isSnapshot in ThisBuild := {
+  true
+}
+
+lazy val sonataCredentials = for {
+  username <- sys.env.get("SONATYPE_USERNAME")
+  password <- sys.env.get("SONATYPE_PASSWORD")
+} yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)
+
+credentials in ThisBuild ++= sonataCredentials.toSeq
+
 lazy val standardSettings = Seq(
   logBuffered in Compile := false,
   logBuffered in Test := false,
@@ -88,10 +107,11 @@ lazy val publishSettings = Seq(
 lazy val root = Project("root", file("."))
   .settings(name := "testz")
   .settings(standardSettings)
+  .settings(skip in publish := true)
   .settings(console := (console in repl).value)
   .aggregate(
     core, `property-scalaz`, tests,
-    base, benchmarks, framework,
+    base, benchmarks,
     runner,
     scalatest, specs2,
     scalaz,
@@ -109,7 +129,7 @@ lazy val core = project.in(file("core"))
 
 lazy val base = project.in(file("base"))
   .settings(name := "testz-base")
-  .aggregate(stdlib, core, runner, framework)
+  .aggregate(stdlib, core, runner)
   .settings(standardSettings ++ publishSettings: _*)
   .enablePlugins(AutomateHeaderPlugin)
 
@@ -129,15 +149,10 @@ lazy val `property-scalaz` = project.in(file("property-scalaz"))
 lazy val benchmarks = project.in(file("benchmarks"))
   .dependsOn(core, runner, scalatest, scalaz, stdlib, specs2)
   .settings(name := "testz-benchmarks")
+  .settings(skip in publish := true)
   .settings(standardSettings)
   .enablePlugins(AutomateHeaderPlugin)
   .enablePlugins(JmhPlugin)
-
-lazy val framework = project.in(file("framework"))
-  .dependsOn(core, runner)
-  .settings(name := "testz-framework")
-  .settings(standardSettings ++ publishSettings: _*)
-  .enablePlugins(AutomateHeaderPlugin)
 
 lazy val runner = project.in(file("runner"))
   .dependsOn(core, suite)
@@ -198,6 +213,7 @@ lazy val docs = project
   .settings(name := "testz-docs")
   .dependsOn(core, runner, `property-scalaz`, scalatest, scalaz, specs2, stdlib)
   .settings(standardSettings)
+  .settings(skip in publish := true)
   .enablePlugins(MicrositesPlugin)
   .settings(
     // TIL, tut is run in a real REPL
