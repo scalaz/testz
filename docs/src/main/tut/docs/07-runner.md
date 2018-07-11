@@ -32,3 +32,7 @@ Any value of type `Suite` can be run by the runner.
 The runner avoids interleaving test output because `Suite`
 doesn't print to standard out itself; that's the runner's job.
 It prints output given by the `Suite`.
+
+As well, `() => Suite`s are run fully sequentially, and if a
+`Suite` runs synchronously, the passed `ExecutionContext` is not
+used.
