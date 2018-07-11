@@ -32,10 +32,8 @@ package testz
 
 import z._
 
-import scalaz.{~>, Applicative, BindRec, Monad}
-import scalaz.concurrent.Task
+import scalaz.{Applicative, BindRec, Monad}
 import scalaz.syntax.all._
-import spire.random.rng._
 
 object property {
 
@@ -47,18 +45,20 @@ object property {
       val start = Nil
       def step(s: List[F[TestResult]], i: I): G[List[F[TestResult]]] =
         (testGenerator(i) :: s).pure[G]
-      def end(s: List[F[TestResult]]): G[F[TestResult]] =
+      def end(s: List[F[TestResult]]): G[F[TestResult]] = {
         s.reverse.foldLeft(Success().point[F])(
           Applicative[F].apply2(_, _)(TestResult.combine)
         ).pure[G]
+      }
     }
 
   def exhaustive[F[_]: Applicative, I]
                 (in: List[(() => I)])
                 (testGenerator: I => F[TestResult])
-                : F[TestResult] = {
-    in.foldLeft(Success().point[F])((b, a) => Applicative[F].apply2(b, testGenerator(a()))(TestResult.combine))
-  }
+                : F[TestResult] =
+    in.foldLeft(Success().point[F])((b, a) =>
+      Applicative[F].apply2(b, testGenerator(a()))(TestResult.combine)
+    )
 
   def exhaustiveU[F[_]: BindRec, I]
                  (in: Unfold[F, I])

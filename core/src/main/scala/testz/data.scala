@@ -58,7 +58,9 @@ abstract class Harness[T] {
 */
 sealed abstract class TestResult
 
-final class Failure(val failures: List[Throwable Either String]) extends TestResult
+final class Failure(val failures: List[Throwable Either String]) extends TestResult {
+  override def toString(): String = "Failure(\n" + failures.mkString("  ", "\n  ",  "") + "\n)"
+}
 object Failure {
   @inline def apply(failures: List[Throwable Either String]): TestResult =
     new Failure(failures)
@@ -78,17 +80,16 @@ object Failure {
 
 case object Success extends TestResult {
   @inline final def apply(): TestResult = this
+  override def toString(): String = "Success"
 }
 // TODO: use a pretty-printer?
 
 object TestResult {
   def combine(first: TestResult, second: TestResult): TestResult =
-    first match {
-      case fs1: Failure => second match {
-        case fs2: Failure => Failure(fs1.failures ++ fs2.failures)
-        case _ => fs1
-      }
-      case _ => second
+    if (first eq Success) second
+    else if (second eq Success) first
+    else {
+      Failure(first.asInstanceOf[Failure].failures ++ second.asInstanceOf[Failure].failures)
     }
 }
 

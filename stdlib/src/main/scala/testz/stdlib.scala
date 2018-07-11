@@ -44,7 +44,7 @@ abstract class PureHarness[T[_]] { self =>
     (init: () => I)
     (tests: T[(I, R)]): T[R]
 
- def toHarness[R]: Harness[T[R]] = new Harness[T[R]]{
+ def toHarness[R]: Harness[T[R]] = new Harness[T[R]] {
     def test
       (name: String)
       (assertions: () => TestResult)
@@ -104,6 +104,7 @@ object PureSuite {
               cur = cur + 1
             }
           } else if (tests.isInstanceOf[::[Uses[R]] @unchecked]) {
+            // slightly less hot path: we have a list.
             var cur = tests
             while (cur.isInstanceOf[::[Uses[R]]]) {
               cur.head(r, newScope)

@@ -139,7 +139,6 @@ lazy val `property-scalaz` = project.in(file("property-scalaz"))
   .settings(standardSettings ++ publishSettings: _*)
   .settings(
     libraryDependencies ++= Seq(
-      "org.scalaz"    %% "scalaz-concurrent" % scalazVersion  % "compile, test",
       "org.scalaz"    %% "scalaz-core"       % scalazVersion  % "compile, test",
       "org.typelevel" %% "spire"             % spireVersion
     )
