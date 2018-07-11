@@ -88,37 +88,23 @@ object Runner {
     case _ =>
   }
 
-  def grouped[A](it: Iterator[A], groupSize: Int): Iterator[Iterator[A]] =
-    new Iterator[Iterator[A]] {
-      def hasNext = it.hasNext
-      def next = new Iterator[A] {
-        var cur = 0
-        def hasNext = it.hasNext && cur < groupSize
-        def next = {
-          cur = cur + 1
-          it.next
-        }
-      }
-    }
-
   /**
    * This is the meat of the runner.
    * It takes a list of `() => Suite` and runs all of them in
    * sequence, taking cues from a passed `Config` value.
    */
   def configured(suites: List[() => Suite], config: Config, ec: ExecutionContext): Future[Unit] = {
-    import config._
     val startTime = System.currentTimeMillis
-    val run = traverseFutureIterator(grouped(suites.iterator, chunkSize)) { chunk =>
-      val runSuite = traverseFutureIterator(chunk)(_().run(ec))(ec)
+    val run = traverseFutureIterator(suites.iterator) { suite =>
+      val runSuite = suite().run(ec)
       runSuite.value match {
         case Some(Success(a)) =>
-          printStrss(a, config.output)
+          printStrs(a, config.output)
           Future.unit
         case Some(Failure(e)) =>
           Future.failed(e)
         case None =>
-          runSuite.map(a => printStrss(a, config.output))(ec)
+          runSuite.map(printStrs(_, config.output))(ec)
       }
     }(ec)
     if (run.isCompleted) {
