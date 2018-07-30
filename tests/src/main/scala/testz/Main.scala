@@ -40,7 +40,7 @@ object Main {
   def main(args: Array[String]): Unit = {
     val pureHarness = PureHarness.make((ls, tr) => Runner.printStrs(Runner.printTest(ls, tr), print))
 
-    def runPure(name: String, suite: PureSuite): Future[() => Unit] = {
+    def runPure(name: String, suite: ResourceSuite[PureHarness]): Future[() => Unit] = {
       Future.successful(suite.tests(pureHarness)((), List(name)))
     }
 

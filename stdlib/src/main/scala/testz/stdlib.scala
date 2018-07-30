@@ -117,8 +117,6 @@ object PureHarness {
 
 }
 
-abstract class PureSuite extends ResourceSuite[PureHarness]
-
 trait ImpureHarness[T[_]] { self =>
   def test[R]
     (name: String)
@@ -153,9 +151,7 @@ trait ImpureHarness[T[_]] { self =>
 
 }
 
-abstract class ImpureSuite extends ResourceSuite[ImpureHarness]
-
-object ImpureSuite {
+object ImpureHarness {
 
   type Uses[R] = (R, List[String]) => Future[() => Unit]
 

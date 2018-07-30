@@ -30,7 +30,7 @@
 
 package testz
 
-final class StdlibSuite extends PureSuite {
+final class StdlibSuite extends ResourceSuite[PureHarness] {
   def tests[T[_]](harness: PureHarness[T]): T[Unit] = {
     import harness._
     section("assert")(

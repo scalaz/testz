@@ -136,6 +136,4 @@ object z {
     }
   }
 
-  abstract class TaskSuite extends ResourceSuite[TaskHarness]
-
 }
