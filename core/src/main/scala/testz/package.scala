@@ -29,6 +29,6 @@
  */
 
 package object testz {
-  def assert(b: Boolean): TestResult =
-    if (b) Success else Failure.noMessage
+  def assert(b: Boolean): Result =
+    if (b) Succeed else Fail.noMessage
 }

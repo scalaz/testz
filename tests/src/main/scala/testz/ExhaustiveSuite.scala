@@ -34,29 +34,30 @@ import scalaz._, Scalaz._
 import z._, property._
 
 final class ExhaustiveSuite extends PureSuite {
+  // TODO: perhaps there's a better way to do this than math.
   val testData = Unfold[Id, Int](1, 2, 3, 4, 5, 6).flatMap {
     i =>
       val n = i * 10
-      Unfold((1 to 5).toList.map(_ + n): _*)
+      Unfold((n to (n + 5)): _*)
   }
 
   def tests[T[_]](harness: PureHarness[T]): T[Unit] = {
     import harness._
-    section("exhaustives")(
-      test("exhaustiveS int range") { _ =>
+    section("int ranges")(
+      test("exhaustiveS") { _ =>
         val actualErrors = exhaustiveS[Id, Int](1, 2, 3, 4, 5, 6)(i =>
-          if (i =/= 3) Failure.string("not equal")
-          else Success()
+          if (i =/= 3) Fail.string("not equal")
+          else Succeed()
         )
-        val expectedErrors = Failure.strings(List.fill(5)("not equal"))
+        val expectedErrors = Fail.strings(List.fill(5)("not equal"))
         assert(actualErrors === expectedErrors)
       },
-      test("exhaustiveU int range") { _ =>
+      test("exhaustiveU") { _ =>
         val actualErrors = exhaustiveU[Id, Int](testData) { i =>
-          if (i % 5 === 1) Failure.string("equal")
-          else Success()
+          if (i % 5 === 1) Fail.string("equal")
+          else Succeed()
         }
-        assert(actualErrors === Failure.strings(List.fill(6)("equal")))
+        assert(actualErrors === Fail.strings(List.fill(6)("equal")))
       }
     )
   }

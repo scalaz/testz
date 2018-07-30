@@ -30,7 +30,7 @@
 
 package testz
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.global
 
@@ -38,10 +38,17 @@ import testz.runner._
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val suites: List[() => Suite] = List(
-      () => new ExhaustiveSuite,
-      () => new StdlibSuite
+    val pureHarness = PureHarness.make((ls, tr) => Runner.printStrs(Runner.printTest(ls, tr), print))
+
+    def runPure(name: String, suite: PureSuite): Future[() => Unit] = {
+      Future.successful(suite.tests(pureHarness)((), List(name)))
+    }
+
+    val suites: List[() => Future[() => Unit]] = List(
+      () => runPure("Stdlib Unit Tests", new StdlibSuite),
+      () => runPure("Exhaustive tests", new ExhaustiveSuite)
     )
+
     Await.result(Runner(suites, global), Duration.Inf)
   }
 }

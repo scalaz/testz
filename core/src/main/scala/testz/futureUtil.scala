@@ -30,51 +30,52 @@
 
 package testz
 
-import scala.concurrent.{ExecutionContext, Future}
+object futureUtil {
 
-trait Suite {
-  def run(ec: ExecutionContext): Future[List[String]]
-}
+  import scala.concurrent.{Future, ExecutionContext}
 
-object Suite {
-  def printScope(scope: List[String]): String = {
-    fastConcatDelim(scope.reverse.asInstanceOf[::[String]], "->")
-  }
-
-  def printTest(scope: List[String], out: TestResult) = out match {
-    case Success => ""
-    case _       => printScope("failed\n" :: scope)
-  }
-
-  def fastConcat(strs: List[String]): String = strs match {
-    case ss: ::[String] => fastConcatDelim(ss, "")
-    case _: Nil.type => ""
-  }
-
-  def fastConcatDelim(strs: ::[String], delim: String): String = {
-    if (strs.tail eq Nil) {
-      strs.head
-    } else {
-      var totalLength = 0
-      var numStrs = 0
-      var cursor: List[String] = strs
-      while (!cursor.isInstanceOf[Nil.type]) {
-        val strss = cursor.asInstanceOf[::[String]]
-        totalLength = totalLength + strss.head.length
-        numStrs = numStrs + 1
-        cursor = strss.tail
+  def consumeIterator[A](it: Iterator[Future[A]])(ec: ExecutionContext): Future[Unit] = {
+    @scala.annotation.tailrec
+    def inner(): Future[Unit] = {
+      if (it.hasNext) {
+        val ne = it.next
+        if (ne.isCompleted) {
+          inner()
+        } else {
+          ne.flatMap(_ => consumeIterator(it)(ec))(ec)
+        }
+      } else {
+        Future.unit
       }
-      val sb = new StringBuilder(totalLength + (numStrs * delim.length) + 5)
-      cursor = strs
-      while (!cursor.isInstanceOf[Nil.type]) {
-        val strss = cursor.asInstanceOf[::[String]]
-        sb.append(strss.head)
-        if (!strss.tail.isInstanceOf[Nil.type])
-          sb.append(delim)
-        cursor = strss.tail
-      }
-
-      sb.toString
     }
+
+    inner()
   }
+
+  def collectIterator[A](it: Iterator[Future[() => Unit]])(ec: ExecutionContext): Future[() => Unit] = {
+    @scala.annotation.tailrec
+    def inner(acc: () => Unit): Future[() => Unit] = {
+      if (it.hasNext) {
+        val ne = it.next
+        if (ne.isCompleted) {
+          val newFun = ne.value.get.get
+          inner(() => { acc(); newFun() })
+        } else {
+          ne.flatMap(c =>
+            collectIterator(it)(ec)
+              .map(k => () => { c(); k() } )(ec)
+          )(ec)
+        }
+      } else {
+        Future.successful(acc)
+      }
+    }
+    inner(() => ())
+  }
+
+  def map[A, B](fut: Future[A])(f: A => B)(ec: ExecutionContext): Future[B] = {
+    if (fut.isCompleted) Future.successful(f(fut.value.get.get))
+    else fut.map(f)(ec)
+  }
+
 }

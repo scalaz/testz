@@ -37,48 +37,37 @@ import scala.concurrent.Future
 
 object specs2 {
 
-  abstract class SpecsSuite[T] {
-    def test(test: () => Future[TestResult]): T
+  // TODO: should implement `bracket` in the same form as `testz.z.TaskHarness`.
+  // probably involves tracking raw `() => specs2.Result` functions, wrapping them
+  // in some evil mutation stuff.
+  // very worth it; basically adds this feature to specs2 externally.
+  abstract class SpecsHarness[T] {
+    def test(test: () => Future[Result]): T
     def section(tests1: T, testss: T*): T
   }
 
-  // abstract class TaskSuite() extends mutable.Specification {
+  // abstract class SpecsSuite() extends mutable.Specification {
   //   def tests[T[_]](test: Harness[() => ?, T]): T[Unit]
 
   //   private def makeHarness: Harness[() => ?, ? => Fragment] =
   //     new Harness[() => ?, ? => Fragment] {
   //       def apply[R]
   //         (name: String)
-  //         (assertion: R => () => TestResult)
-  //         : R => Fragment = {
+  //         (assertion: () => TestResult)
+  //         : () => Fragment = {
   //         // todo: catch exceptions
   //         r => name in (assertion(r) must_== Success)
   //       }
   //       def section[R]
   //         (name: String)
   //         (
-  //           test1: R => Fragment,
-  //           tests: R => Fragment*
+  //           test1: () => Fragment,
+  //           tests: () => Fragment*
   //         ): R => Fragment = { r =>
   //           name should {
   //             val h = test1(r)
   //             tests.map(_(r)).lastOption.getOrElse(h)
   //           }
-  //       }
-  //       def bracket[R, I]
-  //         (init: () => I)
-  //         (cleanup: I => () => Unit)
-  //         (tests: ((I, R)) => Fragment
-  //       ): R => Fragment = { r =>
-  //         val i = init()
-  //         // this probably doesn't work, because
-  //         // specs2 has some magical execution model things.
-  //         val f = tests((i, r))
-  //         cleanup(i)
-  //         f
-  //       }
-  //       def mapResource[R, RN](test: R => Fragment)(f: RN => R): RN => Fragment = {
-  //         rn => test(f(rn))
   //       }
   //   }
 

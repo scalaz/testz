@@ -34,7 +34,7 @@ package benchmarks
 import runner._
 
 import java.util.concurrent.TimeUnit
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.global
 
@@ -70,9 +70,9 @@ class Bulk {
       import harness._
 
       section("long, long section name")(
-        test("test number 0")(_ => Failure.noMessage),
+        test("test number 0")(_ => Fail.noMessage),
         List.tabulate(perSuite - 1)(n =>
-          test[Unit]("test number " + (n + 1))(_ => Failure.noMessage)
+          test[Unit]("test number " + (n + 1))(_ => Fail.noMessage)
         ): _*
       )
     }
@@ -83,9 +83,9 @@ class Bulk {
       import harness._
 
       section("long, long section name")(
-        test("test number 0")(_ => Success),
+        test("test number 0")(_ => Succeed),
         List.tabulate(perSuite - 1)(n =>
-          test[Unit]("test number " + (n + 1))(_ => Success)
+          test[Unit]("test number " + (n + 1))(_ => Succeed)
         ): _*
       )
     }
@@ -93,35 +93,46 @@ class Bulk {
 
   @Benchmark
   @BenchmarkMode(Array(Mode.AverageTime))
-  def runFailedSuites(myState: BenchState): Unit = {
+  def runFailSuites(myState: BenchState): Unit = {
     val (print, flush) =
       if (newOutput)
         myState.bufferedOut
       else
         (Console.print(_), () => ())
 
-    val config = Runner.defaultConfig.withOutput(print)
+    val config = Runner.defaultConfig.withOutputSuite(Runner.printStrs(_, print))
 
-    val suites = List.fill(numSuites)(() => failedSuite)
+    val harness = PureHarness.make((ls, res) => Runner.printStrs(Runner.printTest(ls, res), print))
+
+    val suite = failedSuite
+
+    val suites: List[() => Future[() => Unit]] =
+      List.fill(numSuites)(() => Future.successful(PureHarness.run(harness, suite)))
 
     Await.result(Runner.configured(suites, config, global), Duration.Inf)
+
     flush()
   }
 
   @Benchmark
   @BenchmarkMode(Array(Mode.AverageTime))
-  def runSucceededSuites(myState: BenchState): Unit = {
+  def runSucceedSuites(myState: BenchState): Unit = {
     val (print, flush) =
       if (newOutput)
         myState.bufferedOut
       else
         (Console.print(_), () => ())
 
-    val config = Runner.defaultConfig.withOutput(print)
+    val config = Runner.defaultConfig.withOutputSuite(Runner.printStrs(_, print))
 
-    val suites = List.fill(numSuites)(() => succeededSuite)
+    val harness = PureHarness.make((ls, res) => Runner.printStrs(Runner.printTest(ls, res), print))
+
+    val suite = succeededSuite
+
+    val suites: List[() => Future[() => Unit]] = List.fill(numSuites)(() => Future.successful(PureHarness.run(harness, suite)))
 
     Await.result(Runner.configured(suites, config, global), Duration.Inf)
+
     flush()
   }
 

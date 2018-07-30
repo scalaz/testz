@@ -35,12 +35,12 @@ final class StdlibSuite extends PureSuite {
     import harness._
     section("assert")(
       test("success") { _ =>
-        if (assert(true) == Success) Success
-        else Failure.noMessage
+        if (assert(true) eq Succeed()) Succeed()
+        else Fail.noMessage
       },
       test("failure") { _ =>
-        if (assert(false) == Failure.noMessage) Success
-        else Failure.noMessage
+        if (assert(false) eq Fail.noMessage) Succeed()
+        else Fail.noMessage
       }
     )
   }

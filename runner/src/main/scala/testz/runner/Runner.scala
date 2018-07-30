@@ -33,19 +33,23 @@ package runner
 
 import java.io.{BufferedOutputStream, FileDescriptor, FileOutputStream}
 import java.nio.charset.StandardCharsets
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ExecutionContext, Future}
 
 object Runner {
   /**
    * Configuration.
    * Forwards-compatible by construction.
    */
-  final class Config private[Runner](private val _chunkSize: Int, _output: String => Unit) {
-    def withChunkSize(newChunkSize: Int) = new Config(newChunkSize, _output)
-    def withOutput(newOutput: String => Unit) = new Config(_chunkSize, newOutput)
+  final class Config private[Runner](
+    private val _chunkSize: Int,
+    private val _outputSuite: List[String] => Unit
+  ) {
+    def withChunkSize(newChunkSize: Int) =
+      new Config(newChunkSize, _outputSuite)
+    def withOutputSuite(newOutputSuite: List[String] => Unit) =
+      new Config(_chunkSize, newOutputSuite)
     def chunkSize: Int = _chunkSize
-    def output: String => Unit = _output
+    def outputSuite: List[String] => Unit = _outputSuite
   }
 
   def bufferedStdOut(bufferSize: Int): (String => Unit, () => Unit) = {
@@ -57,8 +61,11 @@ object Runner {
       }, () => out.flush())
   }
 
-  val defaultChunkSize = 100
-  val defaultOutput = Console.print(_: String)
+  val defaultChunkSize: Int = 100
+  val defaultOutputSuite: List[String] => Unit =
+    _.foreach(Console.print)
+  val newlineSingleton =
+    "\n" :: Nil
 
   /**
    * It seems sub-optimal to chunk at 100 suites;
@@ -70,19 +77,23 @@ object Runner {
    * if we ran suites in parallel.
    */
   val defaultConfig: Config =
-    new Config(_chunkSize = defaultChunkSize, _output = defaultOutput)
+    new Config(
+      _chunkSize = defaultChunkSize,
+      _outputSuite = defaultOutputSuite
+    )
 
   @scala.annotation.tailrec
-  private def printStrs(strs: List[String], output: String => Unit): Unit = strs match {
+  def printStrs(strs: List[String], output: String => Unit): Unit = strs match {
     case x :: xs => output(x); printStrs(xs, output)
     case _ =>
   }
+
   @scala.annotation.tailrec
-  private def printStrss(strs: List[List[String]], output: String => Unit): Unit = strs match {
+  def printStrss(strs: List[List[String]], output: List[String] => Unit): Unit = strs match {
     case xs: ::[List[String]] =>
       if (xs.head.nonEmpty) {
-        printStrs(xs.head, output)
-        output("\n")
+        output(xs.head)
+        output(newlineSingleton)
       }
       printStrss(xs.tail, output)
     case _ =>
@@ -90,75 +101,84 @@ object Runner {
 
   /**
    * This is the meat of the runner.
-   * It takes a list of `() => Suite` and runs all of them in
+   * It takes a list of `() => () => Future[Unit]` and runs all of them in
    * sequence, taking cues from a passed `Config` value.
    */
-  def configured(suites: List[() => Suite], config: Config, ec: ExecutionContext): Future[Unit] = {
+  def configured(suites: List[() => Future[() => Unit]], config: Config, ec: ExecutionContext): Future[Unit] = {
     val startTime = System.currentTimeMillis
-    val run = traverseFutureIterator(suites.iterator) { suite =>
-      val runSuite = suite().run(ec)
-      runSuite.value match {
-        case Some(Success(a)) =>
-          printStrs(a, config.output)
-          Future.unit
-        case Some(Failure(e)) =>
-          Future.failed(e)
-        case None =>
-          runSuite.map(printStrs(_, config.output))(ec)
-      }
-    }(ec)
+    val run: Future[Unit] = futureUtil.consumeIterator(suites.iterator.map { suite =>
+      futureUtil.map(suite())(_())(ec)
+    })(ec)
     if (run.isCompleted) {
       // hot path: testing was fully synchronous,
       // so we don't need to submit to the ExecutionContext.
       val endTime = System.currentTimeMillis
-      config.output("Testing took " + String.valueOf(endTime - startTime) + "ms (synchronously)\n")
+      config.outputSuite(
+        "Testing took " ::
+        String.valueOf(endTime - startTime) ::
+        "ms (synchronously)\n" ::
+        Nil
+      )
       Future.unit
     } else {
       // slow path
       run.map { _ =>
         val endTime = System.currentTimeMillis
-        config.output("Testing took " + String.valueOf(endTime - startTime) + "ms (asynchronously) \n")
+        config.outputSuite(
+          "Testing took " ::
+          String.valueOf(endTime - startTime) ::
+          "ms (asynchronously) \n" ::
+          Nil
+        )
       }(ec)
     }
   }
 
-  def traverseFutureIterator[A, B](fa: Iterator[A])(f: A => Future[B])(ec: ExecutionContext): Future[List[B]] =
-    if (!fa.hasNext) Future.successful(Nil)
-    else {
-      val lb = new scala.collection.mutable.ListBuffer[B]
-      val mapped = fa.map(f)
-      val outProm = Promise[List[B]]
-      val run = sequenceFutureIterator(mapped, mapped.next, lb)(ec)
-      if (run.isCompleted) {
-        outProm.success(lb.result())
-      } else {
-        run.onComplete(_ => outProm.success(lb.result()))(ec)
-      }
-      outProm.future
-    }
-
-  def sequenceFutureIterator[A, B]
-    (fa: Iterator[Future[A]], next: Future[A], lb: scala.collection.mutable.ListBuffer[A])(ec: ExecutionContext)
-  : Future[Unit] = {
-    @scala.annotation.tailrec def inner(next: Future[A], lb: scala.collection.mutable.ListBuffer[A]): Future[Unit] =
-      next.value match {
-        // hot path: no need to suspend to an EC.
-        case Some(Success(a)) =>
-          lb += a
-          if (fa.hasNext) inner(fa.next, lb)
-          else Future.unit
-        case Some(Failure(e)) => Future.failed(e)
-        // slow path: `next` wasn't synchronous, so we suspend to an EC.
-        case None => next.flatMap { a =>
-          lb += a
-          if (fa.hasNext) sequenceFutureIterator(fa, fa.next, lb)(ec)
-          else Future.unit
-        }(ec)
-      }
-    inner(next, lb)
-  }
-
-  def apply(suites: List[() => Suite], ec: ExecutionContext): Future[Unit] =
+  def apply(suites: List[() => Future[() => Unit]], ec: ExecutionContext): Future[Unit] =
     configured(suites, defaultConfig, ec)
 
+  def printScope(scope: List[String]): String = {
+    fastConcatDelim(scope.reverse.asInstanceOf[::[String]], "->")
+  }
+
+  def printTest(scope: List[String], out: Result): List[String] = out match {
+    case Succeed => Nil
+    case _       =>
+      ("failed\n" :: scope)
+        .reverse
+        .asInstanceOf[::[String]]
+        .flatMap(m => ("->" :: m :: Nil)).tail
+  }
+
+  def fastConcat(strs: List[String]): String = strs match {
+    case ss: ::[String] => fastConcatDelim(ss, "")
+    case _: Nil.type => ""
+  }
+
+  def fastConcatDelim(strs: ::[String], delim: String): String = {
+    if (strs.tail eq Nil) {
+      strs.head
+    } else {
+      var totalLength = 0
+      var numStrs = 0
+      var cursor: List[String] = strs
+      while (!cursor.isInstanceOf[Nil.type]) {
+        val strss = cursor.asInstanceOf[::[String]]
+        totalLength = totalLength + strss.head.length
+        numStrs = numStrs + 1
+        cursor = strss.tail
+      }
+      val sb = new StringBuilder(totalLength + (numStrs * delim.length) + 5)
+      cursor = strs
+      while (!cursor.isInstanceOf[Nil.type]) {
+        val strss = cursor.asInstanceOf[::[String]]
+        sb.append(strss.head)
+        if (!strss.tail.isInstanceOf[Nil.type])
+          sb.append(delim)
+        cursor = strss.tail
+      }
+
+      sb.toString
+    }
+  }
 }

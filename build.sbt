@@ -93,16 +93,27 @@ lazy val standardSettings = Seq(
   addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"),
 
   libraryDependencies ++= Seq(
-    "com.lihaoyi"                %% "sourcecode"        % "0.1.4",
+  ),
+
+  fork in run := true,
+  javaOptions := Seq(
+    // we need discipline here.
+    "-Xms1G",
+    "-Xmx1G",
+
+    // testz tests being single-threaded and careful about liveset size
+    // makes concurrent GC an incredibly good choice.
+    "-XX:+UseConcMarkSweepGC",
+    "-XX:MaxInlineLevel=35"
   ))
 
 lazy val publishSettings = Seq(
   organizationHomepage := None,
-  homepage := Some(url("https://github.com/edmundnoble/testz")),
+  homepage := Some(url("https://github.com/scalaz/testz")),
   scmInfo := Some(
     ScmInfo(
-      url("https://github.com/edmundnoble/testz"),
-      "scm:git@github.com:edmundnoble/testz.git")))
+      url("https://github.com/scalaz/testz"),
+      "scm:git@github.com:scalaz/testz.git")))
 
 lazy val root = Project("root", file("."))
   .settings(name := "testz")
@@ -111,8 +122,8 @@ lazy val root = Project("root", file("."))
   .settings(console := (console in repl).value)
   .aggregate(
     core, `property-scalaz`, tests,
-    base, benchmarks,
-    runner,
+    benchmarks,
+    repl, runner,
     scalatest, specs2,
     scalaz,
     docs)
@@ -125,12 +136,6 @@ lazy val core = project.in(file("core"))
     connectInput in run := true,
     outputStrategy := Some(StdoutOutput)
   )
-  .enablePlugins(AutomateHeaderPlugin)
-
-lazy val base = project.in(file("base"))
-  .settings(name := "testz-base")
-  .aggregate(stdlib, core, runner)
-  .settings(standardSettings ++ publishSettings: _*)
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val `property-scalaz` = project.in(file("property-scalaz"))
@@ -146,7 +151,7 @@ lazy val `property-scalaz` = project.in(file("property-scalaz"))
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val benchmarks = project.in(file("benchmarks"))
-  .dependsOn(core, runner, scalatest, scalaz, stdlib, specs2)
+  .dependsOn(core, runner, `property-scalaz`, scalatest, scalaz, stdlib, specs2)
   .settings(name := "testz-benchmarks")
   .settings(skip in publish := true)
   .settings(standardSettings)
@@ -154,7 +159,7 @@ lazy val benchmarks = project.in(file("benchmarks"))
   .enablePlugins(JmhPlugin)
 
 lazy val runner = project.in(file("runner"))
-  .dependsOn(core, suite)
+  .dependsOn(core)
   .settings(name := "testz-runner")
   .settings(standardSettings ++ publishSettings: _*)
   .enablePlugins(AutomateHeaderPlugin)
@@ -166,7 +171,7 @@ lazy val scalatest = project.in(file("scalatest"))
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val scalaz = project.in(file("scalaz"))
-  .dependsOn(core, suite)
+  .dependsOn(core)
   .settings(name := "testz-scalaz")
   .settings(standardSettings ++ publishSettings: _*)
   .settings(
@@ -189,15 +194,15 @@ lazy val specs2 = project.in(file("specs2"))
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val stdlib = project.in(file("stdlib"))
-  .dependsOn(core, suite)
+  .dependsOn(core)
   .settings(name := "testz-stdlib")
   .settings(standardSettings ++ publishSettings: _*)
-  .enablePlugins(AutomateHeaderPlugin)
-
-lazy val suite = project.in(file("suite"))
-  .dependsOn(core)
-  .settings(name := "testz-suite")
-  .settings(standardSettings ++ publishSettings: _*)
+  .settings(
+    libraryDependencies ++= Seq(
+      compilerPlugin("com.github.ghik" %% "silencer-plugin" % "1.1"),
+      "com.github.ghik" %% "silencer-lib" % "1.1" % Provided
+    )
+  )
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val tests = project.in(file("tests"))
@@ -235,6 +240,7 @@ lazy val repl = project
   .dependsOn(tests % "compile->test")
   .dependsOn(benchmarks)
   .settings(standardSettings)
+  .settings((compile in ThisBuild) := sbt.internal.inc.Analysis.Empty) // sbt.inc.Analysis.empty)
   .settings(
     console := (console in Test).value,
     scalacOptions --= Seq("-Yno-imports", "-Ywarn-unused:imports", "-Xfatal-warnings"),

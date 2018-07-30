@@ -40,7 +40,7 @@ package testz
 abstract class Harness[T] {
   def test
     (name: String)
-    (assertions: () => TestResult)
+    (assertions: () => Result)
     : T
 
   def section
@@ -50,46 +50,71 @@ abstract class Harness[T] {
 }
 
 /**
+  A type for `Suite`s with test harness `H[T]`, for some `T`.
+ */
+trait Suite[H[_]] {
+  def tests[T](harness: H[T]): T
+}
+
+/**
+ * A type for `Suite`s with test harness `H[T]`, for some `T[_]`.
+ * The type parameter of `T[_]` is the type of a resource available to
+ * tests. A `T[Int]` can access some `Int` which was computed for shared
+ * use; harness types should guarantee that resources are properly shared.
+ * The entire "test group" must require no resources to be runnable; that's
+ * the meaning of `T[Unit]`.
+ */
+trait ResourceSuite[H[_[_]]] { self =>
+  def tests[T[_]](harness: H[T]): T[Unit]
+  // forgets that we use resources.
+  // you can tell the resources are unused because the type parameter `X`
+  // is unused.
+  def toSuite: Suite[λ[T => H[λ[X => T]]]] = new Suite[λ[T => H[λ[X => T]]]] {
+    def tests[T](harness: H[λ[X => T]]): T = self.tests[λ[X => T]](harness)
+  }
+}
+
+/**
   The type of test results.
-  A two-branch sum, either `Success`, or `Failure(failures)`.
- `Failure` can contain 0 or more failure messages, and/or
-  throwables. The empty case of `Failure` is deliberate;
+  A two-branch sum, either `S`, or `F(failures)`.
+ `F` can contain 0 or more failure messages, and/or
+  throwables. The empty case of `F` is deliberately included;
   it's the user's choice whether to add failure information.
 */
-sealed abstract class TestResult
+sealed abstract class Result
 
-final class Failure(val failures: List[Throwable Either String]) extends TestResult {
-  override def toString(): String = "Failure(\n" + failures.mkString("  ", "\n  ",  "") + "\n)"
-}
-object Failure {
-  @inline def apply(failures: List[Throwable Either String]): TestResult =
-    new Failure(failures)
-
-  @inline def strings(failures: List[String]): TestResult =
-    apply(failures.map[Throwable Either String, List[Throwable Either String]](Right(_)))
-
-  @inline def string(failure: String): TestResult = new Failure(List(Right(failure)))
-
-  @inline def errors(errs: Throwable*): TestResult =
-    apply(errs.map[Throwable Either String, List[Throwable Either String]](Left(_))(collection.breakOut))
-
-  @inline def error(err: Throwable): TestResult = new Failure(List(Left(err)))
-
-  val noMessage: TestResult = new Failure(Nil)
+final class Fail(val failures: List[Either[Throwable, String]]) extends Result {
+  override def toString(): String = "Failed(\n" + failures.mkString("  ", "\n  ",  "") + "\n)"
 }
 
-case object Success extends TestResult {
-  @inline final def apply(): TestResult = this
-  override def toString(): String = "Success"
+object Fail {
+  @inline def apply(failures: List[Either[Throwable, String]]): Result =
+    new Fail(failures)
+
+  @inline def strings(failures: List[String]): Result =
+    new Fail(failures.map(sa => Right(sa): Either[Throwable, String]))
+
+  @inline def string(failure: String): Result = new Fail(List(Right(failure)))
+
+  @inline def errors(errs: Throwable*): Result =
+    new Fail(errs.map(Left(_): Either[Throwable, String])(collection.breakOut))
+
+  @inline def error(err: Throwable): Result = new Fail(List(Left(err)))
+
+  val noMessage: Result = new Fail(Nil)
+}
+
+case object Succeed extends Result {
+  @inline final def apply(): Result = this
+  override def toString(): String = "Succeed()"
 }
 // TODO: use a pretty-printer?
 
-object TestResult {
-  def combine(first: TestResult, second: TestResult): TestResult =
-    if (first eq Success) second
-    else if (second eq Success) first
+object Result {
+  def combine(first: Result, second: Result): Result =
+    if (first eq Succeed) second
+    else if (second eq Succeed) first
     else {
-      Failure(first.asInstanceOf[Failure].failures ++ second.asInstanceOf[Failure].failures)
+      new Fail(first.asInstanceOf[Fail].failures ++ second.asInstanceOf[Fail].failures)
     }
 }
-
