@@ -34,7 +34,7 @@ import scalaz._, Scalaz._
 import z._, property._
 
 final class ExhaustiveSuite extends PureSuite {
-  // TODO: perhaps there's a better way to do this than math.
+  // TODO: perhaps there's a better way to test these than math.
   val testData = Unfold[Id, Int](1, 2, 3, 4, 5, 6).flatMap {
     i =>
       val n = i * 10
