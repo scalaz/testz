@@ -65,6 +65,10 @@ class Bulk {
   @Param(value = Array("20"))
   var numSuites: Int = _
 
+  abstract class PureSuite {
+    def tests[T[_]](harness: PureHarness[T]): T[Unit]
+  }
+
   def failedSuite = new PureSuite {
     def tests[T[_]](harness: PureHarness[T]): T[Unit] = {
       import harness._
@@ -107,7 +111,7 @@ class Bulk {
     val suite = failedSuite
 
     val suites: List[() => Future[() => Unit]] =
-      List.fill(numSuites)(() => Future.successful(PureHarness.run(harness, suite)))
+      List.fill(numSuites)(() => Future.successful(suite.tests(harness)((), Nil)))
 
     Await.result(Runner.configured(suites, config, global), Duration.Inf)
 
@@ -129,7 +133,7 @@ class Bulk {
 
     val suite = succeededSuite
 
-    val suites: List[() => Future[() => Unit]] = List.fill(numSuites)(() => Future.successful(PureHarness.run(harness, suite)))
+    val suites: List[() => Future[() => Unit]] = List.fill(numSuites)(() => Future.successful(suite.tests(harness)((), Nil)))
 
     Await.result(Runner.configured(suites, config, global), Duration.Inf)
 

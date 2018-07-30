@@ -159,7 +159,7 @@ lazy val benchmarks = project.in(file("benchmarks"))
   .enablePlugins(JmhPlugin)
 
 lazy val runner = project.in(file("runner"))
-  .dependsOn(core)
+  .dependsOn(core, util)
   .settings(name := "testz-runner")
   .settings(standardSettings ++ publishSettings: _*)
   .enablePlugins(AutomateHeaderPlugin)
@@ -194,7 +194,7 @@ lazy val specs2 = project.in(file("specs2"))
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val stdlib = project.in(file("stdlib"))
-  .dependsOn(core)
+  .dependsOn(core, util)
   .settings(name := "testz-stdlib")
   .settings(standardSettings ++ publishSettings: _*)
   .settings(
@@ -211,6 +211,11 @@ lazy val tests = project.in(file("tests"))
   .settings(standardSettings)
   .settings(libraryDependencies ++= Seq(
     "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % Test))
+  .enablePlugins(AutomateHeaderPlugin)
+
+lazy val util = project.in(file("util"))
+  .settings(name := "testz-util")
+  .settings(standardSettings)
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val docs = project
