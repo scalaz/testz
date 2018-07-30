@@ -38,15 +38,20 @@ import testz.runner._
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val pureHarness = PureHarness.make((ls, tr) => Runner.printStrs(Runner.printTest(ls, tr), print))
+    val harness: Harness[PureHarness.Uses[Unit]] =
+      PureHarness.toHarness(
+        PureHarness.make(
+          (ls, tr) => Runner.printStrs(Runner.printTest(ls, tr), print)
+        )
+      )
 
-    def runPure(name: String, suite: ResourceSuite[PureHarness]): Future[() => Unit] = {
-      Future.successful(suite.tests(pureHarness)((), List(name)))
+    def runPure(name: String, tests: PureHarness.Uses[Unit]): Future[() => Unit] = {
+      Future.successful(tests((), List(name)))
     }
 
     val suites: List[() => Future[() => Unit]] = List(
-      () => runPure("Stdlib Unit Tests", new StdlibSuite),
-      () => runPure("Exhaustive tests", new ExhaustiveSuite)
+      () => runPure("Stdlib Unit Tests", (new StdlibSuite).tests(harness)),
+      () => runPure("Exhaustive tests", (new ExhaustiveSuite).tests(harness))
     )
 
     Await.result(Runner(suites, global), Duration.Inf)

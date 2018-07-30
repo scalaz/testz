@@ -30,15 +30,15 @@
 
 package testz
 
-final class StdlibSuite extends ResourceSuite[PureHarness] {
-  def tests[T[_]](harness: PureHarness[T]): T[Unit] = {
+final class StdlibSuite {
+  def tests[T](harness: Harness[T]): T = {
     import harness._
     section("assert")(
-      test("success") { _ =>
+      test("success") { () =>
         if (assert(true) eq Succeed()) Succeed()
         else Fail.noMessage
       },
-      test("failure") { _ =>
+      test("failure") { () =>
         if (assert(false) eq Fail.noMessage) Succeed()
         else Fail.noMessage
       }

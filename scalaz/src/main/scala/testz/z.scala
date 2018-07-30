@@ -88,13 +88,6 @@ object z {
 
     type Uses[R] = (R, List[String]) => Task[() => Unit]
 
-    def run(
-      harness: TaskHarness[Uses],
-      suite: ResourceSuite[TaskHarness]
-    ): Task[() => Unit] = {
-      suite.tests[Uses](harness)((), Nil)
-    }
-
     def toHarness[T[_], R](harness: TaskHarness[T]): Harness[T[R]] = new Harness[T[R]] {
       def test(name: String)(t: () => Result): T[R] =
         harness.test[R](name)(_ => Task.delay(t()))

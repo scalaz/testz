@@ -47,13 +47,6 @@ abstract class PureHarness[T[_]] { self =>
 object PureHarness {
   type Uses[R] = (R, List[String]) => () => Unit
 
-  def run(
-    harness: PureHarness[Uses],
-    suite: ResourceSuite[PureHarness]
-  ): () => Unit = {
-    suite.tests[Uses](harness)((), Nil)
-  }
-
   def make(
     output: (List[String], Result) => Unit
   ): PureHarness[Uses] =
@@ -154,13 +147,6 @@ trait ImpureHarness[T[_]] { self =>
 object ImpureHarness {
 
   type Uses[R] = (R, List[String]) => Future[() => Unit]
-
-  def run(
-    harness: ImpureHarness[Uses],
-    suite: ResourceSuite[ImpureHarness]
-  ): Future[() => Unit] = {
-    suite.tests(harness)((), Nil)
-  }
 
   def make(
     ec: ExecutionContext,

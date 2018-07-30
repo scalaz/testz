@@ -33,9 +33,9 @@ package testz
 /**
   The most boring `Harness` you can think of:
   pure tests with no resources.
-  Any harness type should be convertible to a `BareHarness`;
+  Any harness type should be convertible to a `Harness`;
   it's the lingua franca of tests. If you write tests using
-  `BareHarness`, they can be adapted to work with any suite type later.
+  `Harness`, they can be adapted to work with any suite type later.
 */
 abstract class Harness[T] {
   def test
@@ -47,31 +47,6 @@ abstract class Harness[T] {
     (name: String)
     (test1: T, tests: T*)
     : T
-}
-
-/**
-  A type for `Suite`s with test harness `H[T]`, for some `T`.
- */
-trait Suite[H[_]] {
-  def tests[T](harness: H[T]): T
-}
-
-/**
- * A type for `Suite`s with test harness `H[T]`, for some `T[_]`.
- * The type parameter of `T[_]` is the type of a resource available to
- * tests. A `T[Int]` can access some `Int` which was computed for shared
- * use; harness types should guarantee that resources are properly shared.
- * The entire "test group" must require no resources to be runnable; that's
- * the meaning of `T[Unit]`.
- */
-trait ResourceSuite[H[_[_]]] { self =>
-  def tests[T[_]](harness: H[T]): T[Unit]
-  // forgets that we use resources.
-  // you can tell the resources are unused because the type parameter `X`
-  // is unused.
-  def toSuite: Suite[λ[T => H[λ[X => T]]]] = new Suite[λ[T => H[λ[X => T]]]] {
-    def tests[T](harness: H[λ[X => T]]): T = self.tests[λ[X => T]](harness)
-  }
 }
 
 /**

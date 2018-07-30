@@ -33,38 +33,45 @@ package testz
 import scalaz._, Scalaz._
 import z._, property._
 
-final class ExhaustiveSuite extends ResourceSuite[PureHarness] {
+final class ExhaustiveSuite {
   // TODO: perhaps there's a better way to test these than math.
-  val testData = Unfold[Id, Int](1, 2, 3, 4, 5, 6).flatMap {
+  val testData = Unfold[Id, Int]((1 to 6): _*).flatMap {
     i =>
       val n = i * 10
       Unfold((n to (n + 5)): _*)
   }
 
-  def tests[T[_]](harness: PureHarness[T]): T[Unit] = {
+  def tests[T](harness: Harness[T]): T = {
     import harness._
     section("int ranges")(
-      test("exhaustiveS") { _ =>
+      test("exhaustiveS") { () =>
         val actualErrors = exhaustiveS[Id, Int](1, 2, 3, 4, 5, 6)(i =>
-          if (i =/= 3) Fail.string("$i is not 3")
+          if (i =/= 3) Fail.string(s"$i is not 3")
           else Succeed()
         )
-        val expectedErrors = Fail.strings(List.fill(5)("not equal"))
+        val expectedErrors = Fail.strings(List(
+          "1 is not 3",
+          "2 is not 3",
+          "4 is not 3",
+          "5 is not 3",
+          "6 is not 3"
+        ))
         assert(actualErrors === expectedErrors)
       },
-      test("exhaustiveU") { _ =>
+      test("exhaustiveU") { () =>
         val actualErrors = exhaustiveU[Id, Int](testData) { i =>
           if (i % 5 === 1) Fail.string(s"$i is 1 modulo 5")
           else Succeed()
         }
-        assert(actualErrors === Fail.strings(List(
+        val expectedErrors = Fail.strings(List(
           "61 is 1 modulo 5",
           "51 is 1 modulo 5",
           "41 is 1 modulo 5",
           "31 is 1 modulo 5",
           "21 is 1 modulo 5",
           "11 is 1 modulo 5"
-        )))
+        ))
+        assert(actualErrors === expectedErrors)
       }
     )
   }
