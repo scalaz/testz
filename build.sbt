@@ -6,16 +6,12 @@ lazy val monocleVersion = "1.4.0"
 lazy val scalazVersion  = "7.2.20"
 lazy val spireVersion   = "0.14.1"
 
-// publishTo in ThisBuild := {
-  // val nexus = "https://oss.sonatype.org/"
-  // if (isSnapshot.value)
-    // Some("snapshots" at nexus + "content/repositories/snapshots")
-  // else
-    // Some("releases" at nexus + "service/local/staging/deploy/maven2")
-// }
-
-isSnapshot in ThisBuild := {
-  true
+publishTo in ThisBuild := {
+  val nexus = "https://oss.sonatype.org/"
+  if (isSnapshot.value)
+    Some("snapshots" at nexus + "content/repositories/snapshots")
+  else
+    Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 
 lazy val sonataCredentials = for {
@@ -30,8 +26,8 @@ lazy val standardSettings = Seq(
   logBuffered in Test := false,
   updateOptions := updateOptions.value.withCachedResolution(true),
   exportJars := true,
-  organization := "testz",
-  organizationName := "testz",
+  organization := "org.scalaz",
+  organizationName := "Scalaz",
   startYear := Some(2018),
   ScoverageKeys.coverageHighlighting := true,
   scalacOptions ++= Seq(
@@ -113,7 +109,15 @@ lazy val publishSettings = Seq(
   scmInfo := Some(
     ScmInfo(
       url("https://github.com/scalaz/testz"),
-      "scm:git@github.com:scalaz/testz.git")))
+      "scm:git@github.com:scalaz/testz.git")),
+  developers := List(
+    sbt.Developer(
+      id = "edmundnoble",
+      name = "Edmund Noble",
+      email = "edmundnoble@gmail.com",
+      url = url("https://github.com/edmundnoble")
+    )
+  ))
 
 lazy val root = Project("root", file("."))
   .settings(name := "testz")
@@ -122,16 +126,19 @@ lazy val root = Project("root", file("."))
   .settings(console := (console in repl).value)
   .aggregate(
     core, `property-scalaz`, tests,
+    docs,
     benchmarks,
     repl, runner,
     scalatest, specs2,
     scalaz,
-    docs)
+    stdlib,
+    util
+  )
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val core = project.in(file("core"))
   .settings(name := "testz-core")
-  .settings(standardSettings ++ publishSettings: _*)
+  .settings(standardSettings ++ publishSettings)
   .settings(
     connectInput in run := true,
     outputStrategy := Some(StdoutOutput)
@@ -141,7 +148,7 @@ lazy val core = project.in(file("core"))
 lazy val `property-scalaz` = project.in(file("property-scalaz"))
   .dependsOn(core, scalaz)
   .settings(name := "testz-property-scalaz")
-  .settings(standardSettings ++ publishSettings: _*)
+  .settings(standardSettings ++ publishSettings)
   .settings(
     libraryDependencies ++= Seq(
       "org.scalaz"    %% "scalaz-core"       % scalazVersion  % "compile, test",
@@ -161,19 +168,19 @@ lazy val benchmarks = project.in(file("benchmarks"))
 lazy val runner = project.in(file("runner"))
   .dependsOn(core, util)
   .settings(name := "testz-runner")
-  .settings(standardSettings ++ publishSettings: _*)
+  .settings(standardSettings ++ publishSettings)
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val scalatest = project.in(file("scalatest"))
   .dependsOn(core)
   .settings(name := "testz-scalatest")
-  .settings(standardSettings ++ publishSettings: _*)
+  .settings(standardSettings ++ publishSettings)
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val scalaz = project.in(file("scalaz"))
   .dependsOn(core)
   .settings(name := "testz-scalaz")
-  .settings(standardSettings ++ publishSettings: _*)
+  .settings(standardSettings ++ publishSettings)
   .settings(
     libraryDependencies ++= Seq(
       "org.scalaz" %% "scalaz-concurrent" % scalazVersion  % "compile, test",
@@ -185,7 +192,7 @@ lazy val scalaz = project.in(file("scalaz"))
 lazy val specs2 = project.in(file("specs2"))
   .dependsOn(core)
   .settings(name := "testz-specs2")
-  .settings(standardSettings ++ publishSettings: _*)
+  .settings(standardSettings ++ publishSettings)
   .settings(
     libraryDependencies ++= Seq(
       "org.specs2" %% "specs2-core" % "4.0.2"
@@ -196,7 +203,7 @@ lazy val specs2 = project.in(file("specs2"))
 lazy val stdlib = project.in(file("stdlib"))
   .dependsOn(core, util)
   .settings(name := "testz-stdlib")
-  .settings(standardSettings ++ publishSettings: _*)
+  .settings(standardSettings ++ publishSettings)
   .settings(
     libraryDependencies ++= Seq(
       compilerPlugin("com.github.ghik" %% "silencer-plugin" % "1.1"),
@@ -208,14 +215,14 @@ lazy val stdlib = project.in(file("stdlib"))
 lazy val tests = project.in(file("tests"))
   .settings(name := "testz-tests")
   .dependsOn(core, runner, `property-scalaz`, scalatest, scalaz, specs2, stdlib)
-  .settings(standardSettings)
+  .settings(standardSettings ++ publishSettings)
   .settings(libraryDependencies ++= Seq(
     "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % Test))
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val util = project.in(file("util"))
   .settings(name := "testz-util")
-  .settings(standardSettings)
+  .settings(standardSettings ++ publishSettings)
   .enablePlugins(AutomateHeaderPlugin)
 
 lazy val docs = project
@@ -245,6 +252,7 @@ lazy val repl = project
   .dependsOn(tests % "compile->test")
   .dependsOn(benchmarks)
   .settings(standardSettings)
+  .settings(skip in publish := true)
   .settings((compile in ThisBuild) := sbt.internal.inc.Analysis.Empty) // sbt.inc.Analysis.empty)
   .settings(
     console := (console in Test).value,
