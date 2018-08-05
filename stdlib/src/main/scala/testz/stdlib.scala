@@ -45,7 +45,7 @@ abstract class PureHarness[T[_]] { self =>
   }
 
 object PureHarness {
-  type Uses[R] = (R, List[String]) => () => Unit
+  type Uses[R] = (R, List[String]) => TestOutput
 
   def make(
     output: (List[String], Result) => Unit
@@ -59,7 +59,10 @@ object PureHarness {
       // the `() => Unit`.
         { (r, scope) =>
           val result = assertions(r)
-          () => output(name :: scope, result)
+          new TestOutput(
+            result ne Succeed,
+            () => output(name :: scope, result)
+          )
         }
 
       override def section[R]
@@ -69,14 +72,8 @@ object PureHarness {
         (r, sc) =>
           val newScope = name :: sc
           val outFirst = test1(r, newScope)
-          val ranTests = tests.map(_(r, newScope)).iterator.map(_())
-          // semicolon inference fails, can't put `{` on the outside.
-          () => {
-            outFirst()
-            while (ranTests.hasNext) {
-              ranTests.next
-            }
-          }
+          val outRest = tests.map(_(r, newScope))
+          TestOutput.combineAll1(outFirst, outRest: _*)
       }
 
       override def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] = {
@@ -85,7 +82,7 @@ object PureHarness {
 
       override def allocate[R, I]
         (init: () => I)
-        (tests: ((I, R), List[String]) => () => Unit
+        (tests: ((I, R), List[String]) => TestOutput
       ): Uses[R] =
         (r, sc) => tests((init(), r), sc)
     }
@@ -146,7 +143,7 @@ trait ImpureHarness[T[_]] { self =>
 
 object ImpureHarness {
 
-  type Uses[R] = (R, List[String]) => Future[() => Unit]
+  type Uses[R] = (R, List[String]) => Future[TestOutput]
 
   def make(
     ec: ExecutionContext,
@@ -155,7 +152,7 @@ object ImpureHarness {
     new ImpureHarness[Uses] {
       def test[R](name: String)(assertion: R => Future[Result]): Uses[R] =
         (r, sc) => assertion(r).map { es =>
-          () => outputTest(name :: sc, es)
+          new TestOutput(es ne Succeed, () => outputTest(name :: sc, es))
         }(ec)
 
       def section[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
@@ -163,7 +160,7 @@ object ImpureHarness {
           val newScope = name :: sc
           test1(r, newScope).flatMap { p1 =>
             futureUtil.collectIterator(tests.iterator.map(_(r, newScope)))(ec).map { ps =>
-              () => { p1(); ps();}
+              TestOutput.combineAll1(p1, ps: _*)
             }(ec)
           }(ec)
       }

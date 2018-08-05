@@ -52,6 +52,8 @@ object Runner {
     def outputSuite: List[String] => Unit = _outputSuite
   }
 
+  final class TestResult(val failed: Boolean)
+
   def bufferedStdOut(bufferSize: Int): (String => Unit, () => Unit) = {
     val out = new BufferedOutputStream(new FileOutputStream(FileDescriptor.out), bufferSize)
     // System.setOut(null)
@@ -104,10 +106,10 @@ object Runner {
    * It takes a list of `() => () => Future[Unit]` and runs all of them in
    * sequence, taking cues from a passed `Config` value.
    */
-  def configured(suites: List[() => Future[() => Unit]], config: Config, ec: ExecutionContext): Future[Unit] = {
+  def configured(suites: List[() => Future[TestOutput]], config: Config, ec: ExecutionContext): Future[TestResult] = {
     val startTime = System.currentTimeMillis
-    val run: Future[Unit] = futureUtil.consumeIterator(suites.iterator.map { suite =>
-      futureUtil.map(suite())(_())(ec)
+    val run: Future[Boolean] = futureUtil.orIterator(suites.iterator.map { suite =>
+      futureUtil.map(suite()) { r => r.print(); r.failed }(ec)
     })(ec)
     if (run.isCompleted) {
       // hot path: testing was fully synchronous,
@@ -119,10 +121,10 @@ object Runner {
         "ms (synchronously)\n" ::
         Nil
       )
-      Future.unit
+      Future.successful(new TestResult(run.value.get.get))
     } else {
       // slow path
-      run.map { _ =>
+      run.map { f =>
         val endTime = System.currentTimeMillis
         config.outputSuite(
           "Testing took " ::
@@ -130,11 +132,12 @@ object Runner {
           "ms (asynchronously) \n" ::
           Nil
         )
+        new TestResult(f)
       }(ec)
     }
   }
 
-  def apply(suites: List[() => Future[() => Unit]], ec: ExecutionContext): Future[Unit] =
+  def apply(suites: List[() => Future[TestOutput]], ec: ExecutionContext): Future[TestResult] =
     configured(suites, defaultConfig, ec)
 
   def printScope(scope: List[String]): String = {

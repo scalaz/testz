@@ -45,15 +45,16 @@ object Main {
         )
       )
 
-    def runPure(name: String, tests: PureHarness.Uses[Unit]): Future[() => Unit] = {
+    def runPure(name: String, tests: PureHarness.Uses[Unit]): Future[TestOutput] =
       Future.successful(tests((), List(name)))
-    }
 
-    val suites: List[() => Future[() => Unit]] = List(
+    val suites: List[() => Future[TestOutput]] = List(
       () => runPure("Stdlib Unit Tests", (new StdlibSuite).tests(harness)),
       () => runPure("Exhaustive tests", (new ExhaustiveSuite).tests(harness))
     )
 
-    Await.result(Runner(suites, global), Duration.Inf)
+    val result = Await.result(Runner(suites, global), Duration.Inf)
+
+    if (result.failed) throw new Exception("some tests failed")
   }
 }

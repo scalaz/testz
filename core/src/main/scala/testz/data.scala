@@ -93,3 +93,24 @@ object Result {
       new Fail(first.asInstanceOf[Fail].failures ++ second.asInstanceOf[Fail].failures)
     }
 }
+
+final class TestOutput(
+  val failed: Boolean,
+  val print: () => Unit
+)
+
+object TestOutput {
+  def combine(fst: TestOutput, snd: TestOutput) =
+    new TestOutput(
+      fst.failed || snd.failed,
+      { () => fst.print(); snd.print() }
+    )
+
+  def combineAll1(output1: TestOutput, outputs: TestOutput*) = {
+    val anyFailed = output1.failed || outputs.exists(_.failed)
+    new TestOutput(
+      anyFailed,
+      { () => output1.print(); outputs.foreach(_.print()) }
+    )
+  }
+}

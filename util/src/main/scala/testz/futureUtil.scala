@@ -34,6 +34,26 @@ object futureUtil {
 
   import scala.concurrent.{Future, ExecutionContext}
 
+  def orIterator[A](it: Iterator[Future[Boolean]])(ec: ExecutionContext): Future[Boolean] = {
+    def outer(acc: Boolean): Future[Boolean] = {
+      @scala.annotation.tailrec
+      def inner(acc: Boolean): Future[Boolean] = {
+        if (it.hasNext) {
+          val ne = it.next
+          if (ne.isCompleted) {
+            inner(acc || ne.value.get.get)
+          } else {
+            ne.flatMap(b => outer(acc || b))(ec)
+          }
+        } else {
+          Future.successful(acc)
+        }
+      }
+      inner(acc)
+    }
+    outer(false)
+  }
+
   def consumeIterator[A](it: Iterator[Future[A]])(ec: ExecutionContext): Future[Unit] = {
     @scala.annotation.tailrec
     def inner(): Future[Unit] = {
@@ -52,25 +72,25 @@ object futureUtil {
     inner()
   }
 
-  def collectIterator[A](it: Iterator[Future[() => Unit]])(ec: ExecutionContext): Future[() => Unit] = {
+  def collectIterator[A](it: Iterator[Future[A]])(ec: ExecutionContext): Future[List[A]] = {
     @scala.annotation.tailrec
-    def inner(acc: () => Unit): Future[() => Unit] = {
+    def inner(acc: List[A]): Future[List[A]] = {
       if (it.hasNext) {
         val ne = it.next
         if (ne.isCompleted) {
           val newFun = ne.value.get.get
-          inner(() => { acc(); newFun() })
+          inner(newFun :: acc)
         } else {
           ne.flatMap(c =>
             collectIterator(it)(ec)
-              .map(k => () => { c(); k() } )(ec)
+              .map(k => c :: k)(ec)
           )(ec)
         }
       } else {
         Future.successful(acc)
       }
     }
-    inner(() => ())
+    inner(Nil)
   }
 
   def map[A, B](fut: Future[A])(f: A => B)(ec: ExecutionContext): Future[B] = {
