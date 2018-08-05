@@ -5,4 +5,4 @@ title: specs2
 
 # {{ page.title }}
 
-testz provides a module for specs2 compatibility.
+testz will soon provide a module for specs2 compatibility.
