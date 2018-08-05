@@ -93,8 +93,9 @@ object Runner {
   @scala.annotation.tailrec
   def printStrss(strs: List[List[String]], output: List[String] => Unit): Unit = strs match {
     case xs: ::[List[String]] =>
-      if (xs.head.nonEmpty) {
-        output(xs.head)
+      val head = xs.head
+      if (head.nonEmpty) {
+        output(head)
         output(newlineSingleton)
       }
       printStrss(xs.tail, output)
