@@ -2,9 +2,12 @@ import scoverage._
 import sbt._
 import Keys._
 
-lazy val monocleVersion = "1.4.0"
-lazy val scalazVersion  = "7.2.20"
-lazy val spireVersion   = "0.14.1"
+// shadow sbt-scalajs' definition
+import sbtcrossproject.CrossPlugin.autoImport.crossProject
+
+val monocleVersion = "1.4.0"
+val scalazVersion  = "7.2.20"
+val spireVersion   = "0.14.1"
 
 publishTo in ThisBuild := {
   val nexus = "https://oss.sonatype.org/"
@@ -21,7 +24,7 @@ lazy val sonataCredentials = for {
 
 credentials in ThisBuild ++= sonataCredentials.toSeq
 
-lazy val standardSettings = Seq(
+val standardSettings = Seq(
   logBuffered in Compile := false,
   logBuffered in Test := false,
   updateOptions := updateOptions.value.withCachedResolution(true),
@@ -103,7 +106,7 @@ lazy val standardSettings = Seq(
     "-XX:MaxInlineLevel=35"
   ))
 
-lazy val publishSettings = Seq(
+val publishSettings = Seq(
   organizationHomepage := None,
   homepage := Some(url("https://github.com/scalaz/testz")),
   scmInfo := Some(
@@ -119,24 +122,7 @@ lazy val publishSettings = Seq(
     )
   ))
 
-lazy val root = Project("root", file("."))
-  .settings(name := "testz")
-  .settings(standardSettings)
-  .settings(skip in publish := true)
-  .settings(console := (console in repl).value)
-  .aggregate(
-    core, `property-scalaz`, tests,
-    docs,
-    benchmarks,
-    repl, runner,
-    scalatest, specs2,
-    scalaz,
-    stdlib,
-    util
-  )
-  .enablePlugins(AutomateHeaderPlugin)
-
-lazy val core = project.in(file("core"))
+lazy val core = crossProject(JSPlatform, JVMPlatform).in(file("core"))
   .settings(name := "testz-core")
   .settings(standardSettings ++ publishSettings)
   .settings(
@@ -145,39 +131,36 @@ lazy val core = project.in(file("core"))
   )
   .enablePlugins(AutomateHeaderPlugin)
 
-lazy val `property-scalaz` = project.in(file("property-scalaz"))
-  .dependsOn(core, scalaz)
-  .settings(name := "testz-property-scalaz")
-  .settings(standardSettings ++ publishSettings)
-  .settings(
-    libraryDependencies ++= Seq(
-      "org.scalaz"    %% "scalaz-core"       % scalazVersion  % "compile, test",
-      "org.typelevel" %% "spire"             % spireVersion
-    )
-  )
-  .enablePlugins(AutomateHeaderPlugin)
+lazy val coreJVM = core.jvm
+lazy val coreJS = core.js
 
 lazy val benchmarks = project.in(file("benchmarks"))
-  .dependsOn(core, runner, `property-scalaz`, scalatest, scalaz, stdlib, specs2)
+  .dependsOn(coreJVM, runnerJVM, scalatestJVM, scalazJVM, stdlibJVM, specs2JVM)
   .settings(name := "testz-benchmarks")
   .settings(skip in publish := true)
   .settings(standardSettings)
   .enablePlugins(AutomateHeaderPlugin)
   .enablePlugins(JmhPlugin)
 
-lazy val runner = project.in(file("runner"))
+lazy val runner = crossProject(JSPlatform, JVMPlatform).in(file("runner"))
   .dependsOn(core, util)
   .settings(name := "testz-runner")
   .settings(standardSettings ++ publishSettings)
   .enablePlugins(AutomateHeaderPlugin)
 
-lazy val scalatest = project.in(file("scalatest"))
+lazy val runnerJVM = runner.jvm
+lazy val runnerJS = runner.js
+
+lazy val scalatest = crossProject(JSPlatform, JVMPlatform).in(file("scalatest"))
   .dependsOn(core)
   .settings(name := "testz-scalatest")
   .settings(standardSettings ++ publishSettings)
   .enablePlugins(AutomateHeaderPlugin)
 
-lazy val scalaz = project.in(file("scalaz"))
+lazy val scalatestJVM = scalatest.jvm
+lazy val scalatestJS = scalatest.js
+
+lazy val scalaz = crossProject(JSPlatform, JVMPlatform).in(file("scalaz"))
   .dependsOn(core)
   .settings(name := "testz-scalaz")
   .settings(standardSettings ++ publishSettings)
@@ -189,7 +172,10 @@ lazy val scalaz = project.in(file("scalaz"))
   )
   .enablePlugins(AutomateHeaderPlugin)
 
-lazy val specs2 = project.in(file("specs2"))
+lazy val scalazJVM = scalaz.jvm
+lazy val scalazJS = scalaz.js
+
+lazy val specs2 = crossProject(JSPlatform, JVMPlatform).in(file("specs2"))
   .dependsOn(core)
   .settings(name := "testz-specs2")
   .settings(standardSettings ++ publishSettings)
@@ -200,7 +186,10 @@ lazy val specs2 = project.in(file("specs2"))
   )
   .enablePlugins(AutomateHeaderPlugin)
 
-lazy val stdlib = project.in(file("stdlib"))
+lazy val specs2JVM = specs2.jvm
+lazy val specs2JS = specs2.js
+
+lazy val stdlib = crossProject(JSPlatform, JVMPlatform).in(file("stdlib"))
   .dependsOn(core, util)
   .settings(name := "testz-stdlib")
   .settings(standardSettings ++ publishSettings)
@@ -212,22 +201,28 @@ lazy val stdlib = project.in(file("stdlib"))
   )
   .enablePlugins(AutomateHeaderPlugin)
 
+lazy val stdlibJVM = stdlib.jvm
+lazy val stdlibJS = stdlib.js
+
 lazy val tests = project.in(file("tests"))
   .settings(name := "testz-tests")
-  .dependsOn(core, runner, `property-scalaz`, scalatest, scalaz, specs2, stdlib)
+  .dependsOn(coreJVM, runnerJVM, scalatestJVM, scalazJVM, specs2JVM, stdlibJVM)
   .settings(standardSettings ++ publishSettings)
   .settings(libraryDependencies ++= Seq(
     "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % Test))
   .enablePlugins(AutomateHeaderPlugin)
 
-lazy val util = project.in(file("util"))
+lazy val util = crossProject(JSPlatform, JVMPlatform).in(file("util"))
   .settings(name := "testz-util")
   .settings(standardSettings ++ publishSettings)
   .enablePlugins(AutomateHeaderPlugin)
 
+lazy val utilJVM = util.jvm
+lazy val utilJS = util.js
+
 lazy val docs = project
   .settings(name := "testz-docs")
-  .dependsOn(core, runner, `property-scalaz`, scalatest, scalaz, specs2, stdlib)
+  .dependsOn(coreJVM, runnerJVM, scalatestJVM, scalazJVM, specs2JVM, stdlibJVM)
   .settings(standardSettings)
   .settings(skip in publish := true)
   .enablePlugins(MicrositesPlugin)
@@ -258,8 +253,28 @@ lazy val repl = project
     console := (console in Test).value,
     scalacOptions --= Seq("-Yno-imports", "-Ywarn-unused:imports", "-Xfatal-warnings"),
     initialCommands in console += """
-      |import testz._, testz.runner._, testz.property._, testz.z._
+      |import testz._, testz.runner._, testz.z._, testz.z.streaming._
       |import testz.benchmarks._
       |import scalaz._, scalaz.Scalaz._
     """.stripMargin.trim
   )
+
+lazy val root = Project("root", file("."))
+  .settings(name := "testz")
+  .settings(standardSettings)
+  .settings(skip in publish := true)
+  .settings(console := (console in repl).value)
+  .aggregate(
+    benchmarks,
+    coreJVM, coreJS,
+    docs,
+    repl,
+    runnerJVM, runnerJS,
+    scalatestJVM, scalatestJS,
+    scalazJVM, scalazJS,
+    specs2JVM, specs2JS,
+    stdlibJVM, stdlibJS,
+    tests,
+    utilJVM, utilJS
+  )
+  .enablePlugins(AutomateHeaderPlugin)
