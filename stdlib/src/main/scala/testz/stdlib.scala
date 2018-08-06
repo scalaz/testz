@@ -38,7 +38,6 @@ import scala.util.Try
 abstract class PureHarness[T[_]] { self =>
   def test[R](name: String)(assertions: R => Result): T[R]
   def section[R](name: String)(test1: T[R], tests: T[R]*): T[R]
-  def mapResource[R, RN](tr: T[R])(f: RN => R): T[RN]
   def allocate[R, I]
     (init: () => I)
     (tests: T[(I, R)]): T[R]
@@ -74,10 +73,6 @@ object PureHarness {
           val outFirst = test1(r, newScope)
           val outRest = tests.map(_(r, newScope))
           TestOutput.combineAll1(outFirst, outRest: _*)
-      }
-
-      override def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] = {
-        (rn, sc) => test(f(rn), sc)
       }
 
       override def allocate[R, I]
@@ -116,8 +111,6 @@ trait ImpureHarness[T[_]] { self =>
     (name: String)
     (test1: T[R], tests: T[R]*
   ): T[R]
-
-  def mapResource[R, RN](test: T[R])(f: RN => R): T[RN]
 
   def bracket[R, I]
     (init: () => Future[I])
@@ -163,10 +156,6 @@ object ImpureHarness {
               TestOutput.combineAll1(p1, ps: _*)
             }(ec)
           }(ec)
-      }
-
-      def mapResource[R, RN](test: Uses[R])(f: RN => R): Uses[RN] = {
-        (rn, sc) => test(f(rn), sc)
       }
 
       // a version of `transform` that lets you block on whatever you get

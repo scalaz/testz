@@ -56,7 +56,6 @@ object Runner {
 
   def bufferedStdOut(bufferSize: Int): (String => Unit, () => Unit) = {
     val out = new BufferedOutputStream(new FileOutputStream(FileDescriptor.out), bufferSize)
-    // System.setOut(null)
     (str =>
       if (!str.isEmpty) {
         out.write(str.getBytes(StandardCharsets.UTF_8), 0, str.length)
@@ -152,11 +151,6 @@ object Runner {
         .reverse
         .asInstanceOf[::[String]]
         .flatMap(m => ("->" :: m :: Nil)).tail
-  }
-
-  def fastConcat(strs: List[String]): String = strs match {
-    case ss: ::[String] => fastConcatDelim(ss, "")
-    case _: Nil.type => ""
   }
 
   def fastConcatDelim(strs: ::[String], delim: String): String = {
