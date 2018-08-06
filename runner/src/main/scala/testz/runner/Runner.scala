@@ -140,43 +140,26 @@ object Runner {
   def apply(suites: List[() => Future[TestOutput]], ec: ExecutionContext): Future[TestResult] =
     configured(suites, defaultConfig, ec)
 
-  def printScope(scope: List[String]): String = {
-    fastConcatDelim(scope.reverse.asInstanceOf[::[String]], "->")
-  }
-
   def printTest(scope: List[String], out: Result): List[String] = out match {
     case Succeed => Nil
-    case _       =>
-      ("failed\n" :: scope)
-        .reverse
-        .asInstanceOf[::[String]]
-        .flatMap(m => ("->" :: m :: Nil)).tail
+    case _       => fastConcatDelim(new ::("failed\n", scope), "->")
   }
 
-  def fastConcatDelim(strs: ::[String], delim: String): String = {
+  def fastConcatDelim(strs: ::[String], delim: String): ::[String] = {
     if (strs.tail eq Nil) {
-      strs.head
+      strs
     } else {
-      var totalLength = 0
-      var numStrs = 0
+      var newList: List[String] = Nil
       var cursor: List[String] = strs
-      while (!cursor.isInstanceOf[Nil.type]) {
-        val strss = cursor.asInstanceOf[::[String]]
-        totalLength = totalLength + strss.head.length
-        numStrs = numStrs + 1
-        cursor = strss.tail
+      while (cursor ne Nil) {
+        newList = cursor.head :: newList
+        val tl = cursor.tail
+        if (tl ne Nil) {
+          newList = delim :: newList
+        }
+        cursor = cursor.tail
       }
-      val sb = new StringBuilder(totalLength + (numStrs * delim.length) + 5)
-      cursor = strs
-      while (!cursor.isInstanceOf[Nil.type]) {
-        val strss = cursor.asInstanceOf[::[String]]
-        sb.append(strss.head)
-        if (!strss.tail.isInstanceOf[Nil.type])
-          sb.append(delim)
-        cursor = strss.tail
-      }
-
-      sb.toString
+      newList.asInstanceOf[::[String]]
     }
   }
 }
