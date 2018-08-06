@@ -126,6 +126,7 @@ lazy val root = Project("root", file("."))
   .settings(console := (console in repl).value)
   .aggregate(
     core, `property-scalaz`, tests,
+    extras,
     docs,
     benchmarks,
     repl, runner,
@@ -162,6 +163,13 @@ lazy val benchmarks = project.in(file("benchmarks"))
   .settings(name := "testz-benchmarks")
   .settings(skip in publish := true)
   .settings(standardSettings)
+  .enablePlugins(AutomateHeaderPlugin)
+  .enablePlugins(JmhPlugin)
+
+lazy val extras = project.in(file("extras"))
+  .dependsOn(core, stdlib)
+  .settings(name := "testz-extras")
+  .settings(standardSettings ++ publishSettings)
   .enablePlugins(AutomateHeaderPlugin)
   .enablePlugins(JmhPlugin)
 
@@ -214,7 +222,7 @@ lazy val stdlib = project.in(file("stdlib"))
 
 lazy val tests = project.in(file("tests"))
   .settings(name := "testz-tests")
-  .dependsOn(core, runner, `property-scalaz`, scalatest, scalaz, specs2, stdlib)
+  .dependsOn(core, extras, runner, `property-scalaz`, scalatest, scalaz, specs2, stdlib)
   .settings(standardSettings ++ publishSettings)
   .settings(libraryDependencies ++= Seq(
     "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % Test))
@@ -227,7 +235,7 @@ lazy val util = project.in(file("util"))
 
 lazy val docs = project
   .settings(name := "testz-docs")
-  .dependsOn(core, runner, `property-scalaz`, scalatest, scalaz, specs2, stdlib)
+  .dependsOn(core, extras, runner, `property-scalaz`, scalatest, scalaz, specs2, stdlib)
   .settings(standardSettings)
   .settings(skip in publish := true)
   .enablePlugins(MicrositesPlugin)

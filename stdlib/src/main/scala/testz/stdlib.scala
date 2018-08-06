@@ -30,7 +30,6 @@
 
 package testz
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 
@@ -100,35 +99,6 @@ object PureHarness {
         : T[R] =
           self.section(name)(test1, tests: _*)
     }
-
-}
-
-object DocHarness extends PureHarness[λ[R => (String, ListBuffer[String]) => Unit]] {
-  def test[R]
-    (name: String)
-    (assertions: R => Result)
-    : (String, ListBuffer[String]) => Unit = {
-      (indent, buf) =>
-        buf += (indent + "  " + name)
-    }
-
-  // Can't think of a way to document this, so we don't.
-  def allocate[R, I]
-    (init: () => I
-    )(tests: (String, ListBuffer[String]) => Unit
-    ): (String, ListBuffer[String]) => Unit =
-      tests
-
-  def section[R](name: String)(
-    test1: (String, ListBuffer[String]) => Unit,
-    tests: (String, ListBuffer[String]) => Unit*
-  ): (String, ListBuffer[String]) => Unit = {
-    (indent, buf) =>
-      val newIndent = indent + "  "
-      buf += (newIndent + "[" + name + "]")
-      test1(newIndent, buf)
-      tests.foreach(_(newIndent, buf))
-  }
 
 }
 

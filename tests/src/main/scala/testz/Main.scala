@@ -45,10 +45,16 @@ object Main {
         )
       )
 
-    val suites: List[() => Future[TestOutput]] = List(
-      () => Future.successful((new StdlibSuite).tests(harness)((), Nil)),
-      () => Future.successful((new PropertySuite).tests(harness)((), List("Property tests")))
+    val tests = List(
+      ("Extras tests", ExtrasSuite.tests(harness)),
+      ("Stdlib tests", StdlibSuite.tests(harness)),
+      ("Property tests", PropertySuite.tests(harness)),
     )
+
+    val suites: List[() => Future[TestOutput]] = tests.map {
+      case (name, suite) =>
+        () => Future.successful(suite((), List(name)))
+    }
 
     val result = Await.result(Runner(suites, global), Duration.Inf)
 
