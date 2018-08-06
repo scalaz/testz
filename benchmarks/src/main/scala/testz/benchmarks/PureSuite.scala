@@ -141,7 +141,6 @@ class Bulk {
 
     if (result.failed) throw new Exception()
 
-
     flush()
   }
 
