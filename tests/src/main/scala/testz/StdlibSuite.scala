@@ -46,17 +46,17 @@ final class StdlibSuite {
       ),
       section("document harness")(
         test("entire harness") { () =>
-          val doc =
-            DocHarness.section("outer section")(
-              DocHarness.section("first inner section")(
-                DocHarness.test[Unit]("first test inside of first inner section")(_ => Succeed),
-                DocHarness.test[Unit]("second test inside of first inner section")(_ => Succeed)
-              ),
-              DocHarness.section("second inner section")(
-                DocHarness.test[Unit]("first test inside of second inner section")(_ => Succeed),
-              )
-            )("  ")
-          assert(doc == List(
+          val buf = new scala.collection.mutable.ListBuffer[String]()
+          DocHarness.section("outer section")(
+            DocHarness.section("first inner section")(
+              DocHarness.test[Unit]("first test inside of first inner section")(_ => Succeed),
+              DocHarness.test[Unit]("second test inside of first inner section")(_ => Succeed)
+            ),
+            DocHarness.section("second inner section")(
+              DocHarness.test[Unit]("first test inside of second inner section")(_ => Succeed),
+            )
+          )("  ", buf)
+          assert(buf.result() == List(
             "    [outer section]",
             "      [first inner section]",
             "        first test inside of first inner section",
