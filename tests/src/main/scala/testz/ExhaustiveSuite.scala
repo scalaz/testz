@@ -33,7 +33,7 @@ package testz
 import scalaz._, Scalaz._
 import z._, property._
 
-final class ExhaustiveSuite {
+final class PropertySuite {
   // TODO: perhaps there's a better way to test these than math.
   val testData = Unfold[Id, Int]((1 to 6): _*).flatMap {
     i =>

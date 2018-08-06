@@ -102,6 +102,35 @@ object PureHarness {
 
 }
 
+object DocHarness extends PureHarness[λ[R => String => List[String]]] {
+  def test[R]
+    (name: String)
+    (assertions: R => Result)
+    : String => List[String] = { indent =>
+      (indent + "  " + name) :: Nil
+    }
+
+  // Can't think of a way to document this, so we don't.
+  def allocate[R, I]
+    (init: () => I)
+    (tests: String => List[String]): String => List[String] =
+      tests
+
+  def section[R](name: String)(
+    test1: String => List[String],
+    tests: String => List[String]*
+  ): String => List[String] = {
+    indent =>
+      val newIndent = indent + "  "
+      val buf = new scala.collection.mutable.ListBuffer[String]()
+      buf += (newIndent + "[" + name + "]")
+      buf ++= test1(newIndent)
+      tests.foreach(test => buf ++= test(newIndent))
+      buf.result()
+  }
+
+}
+
 trait ImpureHarness[T[_]] { self =>
   def test[R]
     (name: String)

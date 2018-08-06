@@ -45,12 +45,9 @@ object Main {
         )
       )
 
-    def runPure(name: String, tests: PureHarness.Uses[Unit]): Future[TestOutput] =
-      Future.successful(tests((), List(name)))
-
     val suites: List[() => Future[TestOutput]] = List(
-      () => runPure("Stdlib Unit Tests", (new StdlibSuite).tests(harness)),
-      () => runPure("Exhaustive tests", (new ExhaustiveSuite).tests(harness))
+      () => Future.successful((new StdlibSuite).tests(harness)((), Nil)),
+      () => Future.successful((new PropertySuite).tests(harness)((), List("Property tests")))
     )
 
     val result = Await.result(Runner(suites, global), Duration.Inf)

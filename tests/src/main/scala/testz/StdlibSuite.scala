@@ -33,15 +33,39 @@ package testz
 final class StdlibSuite {
   def tests[T](harness: Harness[T]): T = {
     import harness._
-    section("assert")(
-      test("success") { () =>
-        if (assert(true) eq Succeed) Succeed()
-        else Fail.noMessage
-      },
-      test("failure") { () =>
-        if (assert(false) eq Fail.noMessage) Succeed()
-        else Fail.noMessage
-      }
+    section("Stdlib Module Unit Tests")(
+      section("assert")(
+        test("success") { () =>
+          if (assert(true) eq Succeed) Succeed()
+          else Fail.noMessage
+        },
+        test("failure") { () =>
+          if (assert(false) eq Fail.noMessage) Succeed()
+          else Fail.noMessage
+        }
+      ),
+      section("document harness")(
+        test("entire harness") { () =>
+          val doc =
+            DocHarness.section("outer section")(
+              DocHarness.section("first inner section")(
+                DocHarness.test[Unit]("first test inside of first inner section")(_ => Succeed),
+                DocHarness.test[Unit]("second test inside of first inner section")(_ => Succeed)
+              ),
+              DocHarness.section("second inner section")(
+                DocHarness.test[Unit]("first test inside of second inner section")(_ => Succeed),
+              )
+            )("  ")
+          assert(doc == List(
+            "    [outer section]",
+            "      [first inner section]",
+            "        first test inside of first inner section",
+            "        second test inside of first inner section",
+            "      [second inner section]",
+            "        first test inside of second inner section")
+          )
+        }
+      )
     )
   }
 }
