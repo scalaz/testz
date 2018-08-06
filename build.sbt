@@ -266,8 +266,12 @@ lazy val repl = project
     console := (console in Test).value,
     scalacOptions --= Seq("-Yno-imports", "-Ywarn-unused:imports", "-Xfatal-warnings"),
     initialCommands in console += """
-      |import testz._, testz.runner._, testz.property._, testz.z._
+      |import testz._
       |import testz.benchmarks._
+      |import testz.extras._
+      |import testz.runner._
+      |import testz.property._
+      |import testz.z._
       |import scalaz._, scalaz.Scalaz._
     """.stripMargin.trim
   )

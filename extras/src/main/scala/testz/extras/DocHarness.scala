@@ -33,7 +33,7 @@ package extras
 
 import scala.collection.mutable.ListBuffer
 
-object DocHarness extends PureHarness[λ[R => (String, ListBuffer[String]) => Unit]] {
+final class DocHarness extends PureHarness[DocHarness.Uses] {
   def test[R]
     (name: String)
     (assertions: R => Result)
@@ -60,4 +60,8 @@ object DocHarness extends PureHarness[λ[R => (String, ListBuffer[String]) => Un
       tests.foreach(_(newIndent, buf))
   }
 
+}
+
+object DocHarness {
+  type Uses[R] = (String, ListBuffer[String]) => Unit
 }
