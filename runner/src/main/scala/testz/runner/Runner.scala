@@ -103,8 +103,9 @@ object Runner {
 
   /**
    * This is the meat of the runner.
-   * It takes a list of `() => () => Future[Unit]` and runs all of them in
-   * sequence, taking cues from a passed `Config` value.
+   * It takes a list of `() => Future[TestOutput]` and runs all of them in
+   * sequence, taking cues from a passed `Config` value,
+   * and returning whether any tests failed.
    */
   def configured(suites: List[() => Future[TestOutput]], config: Config, ec: ExecutionContext): Future[TestResult] = {
     val startTime = System.currentTimeMillis

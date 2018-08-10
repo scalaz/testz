@@ -73,24 +73,26 @@ object futureUtil {
   }
 
   def collectIterator[A](it: Iterator[Future[A]])(ec: ExecutionContext): Future[List[A]] = {
-    @scala.annotation.tailrec
-    def inner(acc: List[A]): Future[List[A]] = {
-      if (it.hasNext) {
-        val ne = it.next
-        if (ne.isCompleted) {
-          val newFun = ne.value.get.get
-          inner(newFun :: acc)
+    def outer(acc: List[A]): Future[List[A]] = {
+      @scala.annotation.tailrec
+      def inner(acc: List[A]): Future[List[A]] = {
+        if (it.hasNext) {
+          val ne = it.next
+          if (ne.isCompleted) {
+            val newFun = ne.value.get.get
+            inner(newFun :: acc)
+          } else {
+            ne.flatMap(c =>
+              outer(c :: acc)
+            )(ec)
+          }
         } else {
-          ne.flatMap(c =>
-            collectIterator(it)(ec)
-              .map(k => c :: k)(ec)
-          )(ec)
+          Future.successful(acc)
         }
-      } else {
-        Future.successful(acc)
       }
+      inner(acc)
     }
-    inner(Nil)
+    map(outer(Nil))(_.reverse)(ec)
   }
 
   def map[A, B](fut: Future[A])(f: A => B)(ec: ExecutionContext): Future[B] = {
