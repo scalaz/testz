@@ -52,9 +52,10 @@ object Runner {
     def outputSuite: List[String] => Unit = _outputSuite
   }
 
+  final class TestResult(val failed: Boolean)
+
   def bufferedStdOut(bufferSize: Int): (String => Unit, () => Unit) = {
     val out = new BufferedOutputStream(new FileOutputStream(FileDescriptor.out), bufferSize)
-    // System.setOut(null)
     (str =>
       if (!str.isEmpty) {
         out.write(str.getBytes(StandardCharsets.UTF_8), 0, str.length)
@@ -91,8 +92,9 @@ object Runner {
   @scala.annotation.tailrec
   def printStrss(strs: List[List[String]], output: List[String] => Unit): Unit = strs match {
     case xs: ::[List[String]] =>
-      if (xs.head.nonEmpty) {
-        output(xs.head)
+      val head = xs.head
+      if (head.nonEmpty) {
+        output(head)
         output(newlineSingleton)
       }
       printStrss(xs.tail, output)
@@ -101,13 +103,14 @@ object Runner {
 
   /**
    * This is the meat of the runner.
-   * It takes a list of `() => () => Future[Unit]` and runs all of them in
-   * sequence, taking cues from a passed `Config` value.
+   * It takes a list of `() => Future[TestOutput]` and runs all of them in
+   * sequence, taking cues from a passed `Config` value,
+   * and returning whether any tests failed.
    */
-  def configured(suites: List[() => Future[() => Unit]], config: Config, ec: ExecutionContext): Future[Unit] = {
+  def configured(suites: List[() => Future[TestOutput]], config: Config, ec: ExecutionContext): Future[TestResult] = {
     val startTime = System.currentTimeMillis
-    val run: Future[Unit] = futureUtil.consumeIterator(suites.iterator.map { suite =>
-      futureUtil.map(suite())(_())(ec)
+    val run: Future[Boolean] = futureUtil.orIterator(suites.iterator.map { suite =>
+      futureUtil.map(suite()) { r => r.print(); r.failed }(ec)
     })(ec)
     if (run.isCompleted) {
       // hot path: testing was fully synchronous,
@@ -119,10 +122,10 @@ object Runner {
         "ms (synchronously)\n" ::
         Nil
       )
-      Future.unit
+      Future.successful(new TestResult(run.value.get.get))
     } else {
       // slow path
-      run.map { _ =>
+      run.map { f =>
         val endTime = System.currentTimeMillis
         config.outputSuite(
           "Testing took " ::
@@ -130,55 +133,34 @@ object Runner {
           "ms (asynchronously) \n" ::
           Nil
         )
+        new TestResult(f)
       }(ec)
     }
   }
 
-  def apply(suites: List[() => Future[() => Unit]], ec: ExecutionContext): Future[Unit] =
+  def apply(suites: List[() => Future[TestOutput]], ec: ExecutionContext): Future[TestResult] =
     configured(suites, defaultConfig, ec)
-
-  def printScope(scope: List[String]): String = {
-    fastConcatDelim(scope.reverse.asInstanceOf[::[String]], "->")
-  }
 
   def printTest(scope: List[String], out: Result): List[String] = out match {
     case Succeed => Nil
-    case _       =>
-      ("failed\n" :: scope)
-        .reverse
-        .asInstanceOf[::[String]]
-        .flatMap(m => ("->" :: m :: Nil)).tail
+    case _       => fastConcatDelim(new ::("failed\n", scope), "->")
   }
 
-  def fastConcat(strs: List[String]): String = strs match {
-    case ss: ::[String] => fastConcatDelim(ss, "")
-    case _: Nil.type => ""
-  }
-
-  def fastConcatDelim(strs: ::[String], delim: String): String = {
+  def fastConcatDelim(strs: ::[String], delim: String): ::[String] = {
     if (strs.tail eq Nil) {
-      strs.head
+      strs
     } else {
-      var totalLength = 0
-      var numStrs = 0
+      var newList: List[String] = Nil
       var cursor: List[String] = strs
-      while (!cursor.isInstanceOf[Nil.type]) {
-        val strss = cursor.asInstanceOf[::[String]]
-        totalLength = totalLength + strss.head.length
-        numStrs = numStrs + 1
-        cursor = strss.tail
+      while (cursor ne Nil) {
+        newList = cursor.head :: newList
+        val tl = cursor.tail
+        if (tl ne Nil) {
+          newList = delim :: newList
+        }
+        cursor = cursor.tail
       }
-      val sb = new StringBuilder(totalLength + (numStrs * delim.length) + 5)
-      cursor = strs
-      while (!cursor.isInstanceOf[Nil.type]) {
-        val strss = cursor.asInstanceOf[::[String]]
-        sb.append(strss.head)
-        if (!strss.tail.isInstanceOf[Nil.type])
-          sb.append(delim)
-        cursor = strss.tail
-      }
-
-      sb.toString
+      newList.asInstanceOf[::[String]]
     }
   }
 }

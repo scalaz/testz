@@ -74,8 +74,6 @@ object z {
 
     def section[R](name: String)(tests1: T[R], testss: T[R]*): T[R]
 
-    def mapResource[R, RN](tr: T[R])(f: RN => R): T[RN]
-
     def bracket[R, I]
       (init: Task[I])
       (cleanup: I => Task[Unit])
@@ -105,9 +103,6 @@ object z {
           case -\/(e) =>
             () => outputTest(sc, Fail.error(e))
         }
-
-      def mapResource[R, RN](r: Uses[R])(f: RN => R): Uses[RN] =
-        (b, ls) => r(f(b), ls)
 
       def section[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
         (r, sc) =>

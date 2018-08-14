@@ -110,10 +110,12 @@ class Bulk {
 
     val suite = failedSuite
 
-    val suites: List[() => Future[() => Unit]] =
+    val suites: List[() => Future[TestOutput]] =
       List.fill(numSuites)(() => Future.successful(suite.tests(harness)((), Nil)))
 
-    Await.result(Runner.configured(suites, config, global), Duration.Inf)
+    val result = Await.result(Runner.configured(suites, config, global), Duration.Inf)
+
+    if (result.failed) throw new Exception()
 
     flush()
   }
@@ -133,9 +135,11 @@ class Bulk {
 
     val suite = succeededSuite
 
-    val suites: List[() => Future[() => Unit]] = List.fill(numSuites)(() => Future.successful(suite.tests(harness)((), Nil)))
+    val suites: List[() => Future[TestOutput]] = List.fill(numSuites)(() => Future.successful(suite.tests(harness)((), Nil)))
 
-    Await.result(Runner.configured(suites, config, global), Duration.Inf)
+    val result = Await.result(Runner.configured(suites, config, global), Duration.Inf)
+
+    if (result.failed) throw new Exception()
 
     flush()
   }
