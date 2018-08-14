@@ -30,6 +30,8 @@ The pure testing library.
    c) Want to avoid running some suites in parallel, but run others in parallel?
    testz doesn't even provide test suite parallelism; that's your job to provide. In the example of the scalaz 8 test suite,
    adding parallelism meant changing 7 lines in the `main` function.
+   d) We can't do what `testQuick` does, because that integrates with the incremental compiler. But `testOnly` is easy (and faster)
+   to just use the REPL for.
 
 5. a) testz also doesn't provide matchers (1). I can barely describe to you the pain caused by using (and not using) matchers with specs2 and scalatest.
    For those who aren't familiar, matchers give the framework a way to write assertions combined with additional diagnostics on test failure.
