@@ -32,47 +32,63 @@ package testz
 
 import scala.concurrent.Future
 
-// import org.specs2.mutable
-// import org.specs2.specification.core.Fragment
+import org.specs2.concurrent.ExecutionEnv
+import org.specs2.mutable
+import org.specs2.specification.core.Fragment
 
 object specs2 {
 
-  // TODO: should implement `bracket` in the same form as `testz.z.TaskHarness`.
-  // probably involves tracking raw `() => specs2.Result` functions, wrapping them
+  // TODO: should implement `bracket` with the same signature as
+  // `testz.ImpureHarness`. probably involves tracking raw
+  // `() => specs2.Result` functions, wrapping them
   // in some evil mutation stuff.
   // very worth it; basically adds this feature to specs2 externally.
   abstract class SpecsHarness[T] {
-    def test(test: () => Future[Result]): T
-    def section(tests1: T, testss: T*): T
+    def test(name: String)(assertion: () => Future[Result]): T
+    def section(name: String)(tests1: T, testss: T*): T
   }
 
-  // abstract class SpecsSuite() extends mutable.Specification {
-  //   def tests[T[_]](test: Harness[() => ?, T]): T[Unit]
+  object SpecsHarnessMethods {
+    def make(spec: mutable.Specification, ee: ExecutionEnv): SpecsHarness[() => Fragment] = {
+      implicit val exEnv = ee
+      import spec._
+      new SpecsHarness[() => Fragment] {
+        def test
+          (name: String)
+          (assertion: () => Future[Result])
+          : () => Fragment = { () =>
+          // todo: catch exceptions?
+          name in {
+            assertion().map(_ must_== Succeed).await
+          }
+        }
+        def section
+          (name: String)
+          (
+            test1: () => Fragment,
+            tests: () => Fragment*
+          ): () => Fragment = { () =>
+            name should {
+              val h = test1()
+              tests.map(_()).lastOption.getOrElse(h)
+            }
+        }
+    }
+  }
 
-  //   private def makeHarness: Harness[() => ?, ? => Fragment] =
-  //     new Harness[() => ?, ? => Fragment] {
-  //       def apply[R]
-  //         (name: String)
-  //         (assertion: () => TestResult)
-  //         : () => Fragment = {
-  //         // todo: catch exceptions
-  //         r => name in (assertion(r) must_== Success)
-  //       }
-  //       def section[R]
-  //         (name: String)
-  //         (
-  //           test1: () => Fragment,
-  //           tests: () => Fragment*
-  //         ): R => Fragment = { r =>
-  //           name should {
-  //             val h = test1(r)
-  //             tests.map(_(r)).lastOption.getOrElse(h)
-  //           }
-  //       }
-  //   }
+    def toHarness[T](harness: SpecsHarness[T]): Harness[T] =
+      new Harness[T] {
+        def test(name: String)(assertion: () => Result): T =
+          harness.test(name)(() => Future.successful(assertion()))
 
-  //   test[? => Fragment](makeHarness)(())
+        def section
+          (name: String)
+          (
+            test1: T,
+            tests: T*
+          ): T = harness.section(name)(test1, tests: _*)
 
-  // }
+      }
+  }
 
 }
