@@ -30,7 +30,7 @@
 
 package testz
 
-final class StdlibSuite {
+object StdlibSuite {
   def tests[T](harness: Harness[T]): T = {
     import harness._
     section("assert")(

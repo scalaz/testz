@@ -30,35 +30,33 @@
 
 package testz
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.Duration
-import scala.concurrent.ExecutionContext.global
+import extras._
 
-import testz.runner._
-
-object Main {
-  val harness: Harness[PureHarness.Uses[Unit]] =
-    PureHarness.toHarness(
-      PureHarness.make(
-        (ls, tr) => Runner.printStrs(Runner.printTest(ls, tr), print)
-      )
+object ExtrasSuite {
+  def tests[T](harness: Harness[T]): T = {
+    import harness._
+    section("document harness")(
+      test("entire harness") { () =>
+        val docHarness = new DocHarness
+        val buf = new scala.collection.mutable.ListBuffer[String]()
+        docHarness.section("outer section")(
+          docHarness.section("first inner section")(
+            docHarness.test[Unit]("first test inside of first inner section")(_ => Succeed),
+            docHarness.test[Unit]("second test inside of first inner section")(_ => Succeed)
+          ),
+          docHarness.section("second inner section")(
+            docHarness.test[Unit]("first test inside of second inner section")(_ => Succeed),
+          )
+        )("  ", buf)
+        assert(buf.result() == List(
+          "    [outer section]",
+          "      [first inner section]",
+          "        first test inside of first inner section",
+          "        second test inside of first inner section",
+          "      [second inner section]",
+          "        first test inside of second inner section")
+        )
+      }
     )
-
-  def tests[T](harness: Harness[T]): List[(String, T)] = List(
-    ("Extras tests", ExtrasSuite.tests(harness)),
-    ("Stdlib tests", StdlibSuite.tests(harness)),
-    ("Property tests", PropertySuite.tests(harness)),
-  )
-
-  def suites(harness: Harness[PureHarness.Uses[Unit]]): List[() => Future[TestOutput]] =
-    tests(harness).map {
-      case (name, suite) =>
-        () => Future.successful(suite((), List(name)))
-    }
-
-  def main(args: Array[String]): Unit = {
-    val result = Await.result(Runner(suites(harness), global), Duration.Inf)
-
-    if (result.failed) throw new Exception("some tests failed")
   }
 }
