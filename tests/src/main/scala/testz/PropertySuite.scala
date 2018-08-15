@@ -31,7 +31,7 @@
 package testz
 
 import scalaz._, Scalaz._
-import z._, property._
+import z._, z.streaming._
 
 object PropertySuite {
   // TODO: perhaps there's a better way to test these than math.
