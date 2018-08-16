@@ -62,7 +62,7 @@ class Bulk {
   @Param(value = Array("50"))
   var perSuite: Int = _
 
-  @Param(value = Array("20"))
+  @Param(value = Array("500"))
   var numSuites: Int = _
 
   abstract class PureSuite {
@@ -96,7 +96,7 @@ class Bulk {
   }
 
   @Benchmark
-  @BenchmarkMode(Array(Mode.AverageTime))
+  @BenchmarkMode(Array(Mode.SampleTime))
   def runFailSuites(myState: BenchState): Unit = {
     val (print, flush) =
       if (newOutput)
@@ -115,13 +115,13 @@ class Bulk {
 
     val result = Await.result(Runner.configured(suites, config, global), Duration.Inf)
 
-    if (result.failed) throw new Exception()
+    if (!result.failed) throw new Exception()
 
     flush()
   }
 
   @Benchmark
-  @BenchmarkMode(Array(Mode.AverageTime))
+  @BenchmarkMode(Array(Mode.SampleTime))
   def runSucceedSuites(myState: BenchState): Unit = {
     val (print, flush) =
       if (newOutput)
