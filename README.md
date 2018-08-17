@@ -115,7 +115,3 @@ The pure testing library by scalaz.
     utest, scalatest, and specs2; I believe none of these come close to delivering a library. One consequence is, I don't consider any of them to be functional either;
     frameworks are emphatically not functional programming from where I'm standing.
 
-
-## Contributing
-
-This project is released under the scalaz code of conduct.
