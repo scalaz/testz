@@ -38,7 +38,7 @@ object PropertySuite {
   val testData = Unfold[Id, Int]((1 to 6): _*).flatMap {
     i =>
       val n = i :: (i * 10) :: Nil
-      Unfold((0 to 5).map(k => k :: n): _*)
+      Unfold((0 to 5).map(k => (i, k :: n)): _*)
   }
 
   def tests[T](harness: Harness[T]): T = {
@@ -46,17 +46,19 @@ object PropertySuite {
     section("int ranges")(
       test("exhaustiveS") { () =>
         val actualErrors = exhaustiveS[Id, Int](1, 2, 3, 4, 5, 6)(i =>
-          if (i =/= 3) Fail()
-          else Succeed()
+          assert(i === 3)
         )
         assert(actualErrors === Fail())
       },
       test("exhaustiveU") { () =>
-        val actualErrors = exhaustiveU[Id, List[Int]](testData) { i =>
-          if (i.head === 5) Fail()
-          else Succeed()
+        exhaustiveU(testData) {
+          case (i, l) =>
+            assert(
+              l(0) <= 5 && l(0) >= 0 &&
+              l(1) === i &&
+              l(2) === i * 10
+            )
         }
-        assert(actualErrors === Fail())
       }
     )
   }
