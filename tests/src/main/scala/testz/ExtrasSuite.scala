@@ -42,11 +42,11 @@ object ExtrasSuite {
         import docHarness.{section => docSection, test => docTest}
         docSection("outer section")(
           docSection("first inner section")(
-            docTest("first test inside of first inner section")(() => Succeed),
-            docTest("second test inside of first inner section")(() => Succeed)
+            docTest("first test inside of first inner section")(() => Succeed()),
+            docTest("second test inside of first inner section")(() => Succeed())
           ),
           docSection("second inner section")(
-            docTest("first test inside of second inner section")(() => Succeed),
+            docTest("first test inside of second inner section")(() => Succeed()),
           )
         )("  ", buf)
         assert(buf.result() == List(

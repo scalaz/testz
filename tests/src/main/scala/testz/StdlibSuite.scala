@@ -36,11 +36,11 @@ object StdlibSuite {
     section("assert")(
       test("success") { () =>
         if (assert(true) eq Succeed()) Succeed()
-        else Fail.noMessage
+        else Fail()
       },
       test("failure") { () =>
-        if (assert(false) eq Fail.noMessage) Succeed()
-        else Fail.noMessage
+        if (assert(false) eq Fail()) Succeed()
+        else Fail()
       }
     )
   }

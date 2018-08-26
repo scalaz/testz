@@ -38,6 +38,12 @@ import scala.util.Try
 object PureHarness {
   type Uses[R] = (R, List[String]) => TestOutput
 
+  def combineUses[R](fst: Uses[R], snd: Uses[R]): Uses[R] =
+    (r, ls) => { TestOutput.combine(fst(r, ls), snd(r, ls)) }
+
+  def combineAllUses1[R](fst: Uses[R], rest: Uses[R]*): Uses[R] =
+    (r, ls) => { TestOutput.combineAll1(fst(r, ls), rest.map(_(r, ls)): _*) }
+
   def makeFromPrinter(
     output: (List[String], Result) => Unit
   ): Harness[Uses[Unit]] =

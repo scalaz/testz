@@ -30,6 +30,8 @@
 
 package testz
 
+import runner.TestOutput
+
 import scala.concurrent.{Await, ExecutionContext, Future}
 import ExecutionContext.global
 import scala.concurrent.duration.Duration
@@ -38,36 +40,34 @@ object Main {
   val printer: (List[String], Result) => Unit =
     (ls, tr) => runner.printStrs(runner.printTest(ls, tr), print)
 
+  val ec = global
+
   val harness =
     PureHarness.makeFromPrinter(printer)
 
   val futureHarness =
     FutureHarness.makeFromPrinterEff(printer)(global)
 
-  def tests[T](harness: Harness[T]): List[(String, T)] = List(
-    ("Extras tests", ExtrasSuite.tests(harness)),
-    ("Property tests", PropertySuite.tests(harness)),
-    ("Stdlib tests", StdlibSuite.tests(harness)),
+  def unitTests = TestOutput.combineAll1(
+    ExtrasSuite.tests(harness)((), List("Extras tests")),
+    PropertySuite.tests(harness)((), List("Property tests")),
+    StdlibSuite.tests(harness)((), List("Stdlib tests")),
   )
 
-  def futureTests[T](futureHarness: EffectHarness[Future, T], ec: ExecutionContext): List[(String, T)] = List(
-    ("Runner tests", RunnerSuite.tests(futureHarness, ec)),
-  )
+  def propertyTests =
+    PropertySuite.tests(harness)((), List("Property tests"))
 
-  @inline def suites: List[() => Future[TestOutput]] =
-    tests(harness).map {
-      case (name, suite) =>
-        () => Future.successful(suite((), List(name)))
-    }
-
-  @inline def futureSuites: List[() => Future[TestOutput]] =
-    futureTests(futureHarness, global).map {
-      case (name, suite) =>
-        () => suite((), List(name))
-    }
+  def runnerTests =
+    RunnerSuite.tests(futureHarness, ec)((), List("Runner tests"))
 
   def main(args: Array[String]): Unit = {
-    val runSuites = runner(futureSuites ++ suites, Console.print(_), global)
+    val testOutputs: List[() => Future[TestOutput]] = List(
+      Future(unitTests)(ec),
+      Future(propertyTests)(ec),
+      Future(runnerTests)(ec).flatMap(x => x)(ec)
+    ).map(s => () => s)
+
+    val runSuites = runner(testOutputs, Console.print(_), global)
     val result = Await.result(runSuites, Duration.Inf)
 
     if (result.failed) throw new Exception("some tests failed")

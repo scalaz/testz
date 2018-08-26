@@ -11,12 +11,12 @@ As such, the source should be fully explainable, which I attempt to do below.
 
 Firstly, let's start at `Harness[T]`. `Harness[T]` is the most generally
 applicable type in testz; it's used to write most unit test suites, and can be
-implemented in quite a few ways. A typical way to use it is by writing methods that
-take `Harness[T]` for any `T`.
+implemented in quite a few ways. A typical way to use it is by writing methods
+that take `Harness[T]` for any `T`.
 
-`Harness[T]` provides hierarchical test registration with two methods for operating
-on and creating values of type `T`. Think of `T` values as trees with strings
-at the nodes and test functions at the leaves.
+`Harness[T]` provides hierarchical test registration with two methods for
+operating on and creating values of type `T`. Think of `T` values as trees
+with strings at the nodes and test functions at the leaves.
 
 It provides a method `test(String)(() => Result): T` which registers
 a test under a name, returning a "test group value" of type `T`, where
@@ -29,15 +29,9 @@ new group, labelled with the passed string.
 
 ```scala
 abstract class Harness[T] {
-  def test
-    (name: String)
-    (assertions: () => Result)
-    : T
+  def test(name: String)(assertions: () => Result): T
 
-  def section
-    (name: String)
-    (test1: T, tests: T*)
-    : T
+  def section(name: String)(test1: T, tests: T*): T
 }
 ```
 
@@ -47,15 +41,9 @@ can register tests that have asynchronous results.
 
 ```scala
 abstract class EffectHarness[F[_], T] {
-  def test
-    (name: String)
-    (assertions: () => F[Result])
-    : T
+  def test(name: String)(assertions: () => F[Result]): T
 
-  def section
-    (name: String)
-    (test1: T, tests: T*)
-    : T
+  def section(name: String)(test1: T, tests: T*): T
 }
 ```
 
@@ -87,6 +75,9 @@ The type of test results in testz is `Result`.
 
 It's encoded as an ordinary ADT, with an encoding which provides slightly nicer
 type inference.
+
+A delayed computation of type `Result` (e.g. `() => Result`) is often called
+a "test function".
 
 ```scala
 sealed abstract class Result

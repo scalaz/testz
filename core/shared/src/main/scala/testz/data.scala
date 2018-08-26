@@ -38,30 +38,18 @@ package testz
   `Harness`, they can be adapted to work with any suite type later.
 */
 abstract class Harness[T] {
-  def test
-    (name: String)
-    (assertions: () => Result)
-    : T
+  def test(name: String)(assertions: () => Result): T
 
-  def section
-    (name: String)
-    (test1: T, tests: T*)
-    : T
+  def section(name: String)(test1: T, tests: T*): T
 }
 
 /**
   A test harness with test results in the effect `F[_]`.
  */
 abstract class EffectHarness[F[_], T] {
-  def test
-    (name: String)
-    (assertions: () => F[Result])
-    : T
+  def test(name: String)(assertions: () => F[Result]): T
 
-  def section
-    (name: String)
-    (test1: T, tests: T*)
-    : T
+  def section(name: String)(test1: T, tests: T*): T
 }
 
 object EffectHarness {

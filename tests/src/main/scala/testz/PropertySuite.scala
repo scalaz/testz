@@ -46,32 +46,17 @@ object PropertySuite {
     section("int ranges")(
       test("exhaustiveS") { () =>
         val actualErrors = exhaustiveS[Id, Int](1, 2, 3, 4, 5, 6)(i =>
-          if (i =/= 3) Fail.string(s"$i is not 3")
+          if (i =/= 3) Fail()
           else Succeed()
         )
-        val expectedErrors = Fail.strings(List(
-          "1 is not 3",
-          "2 is not 3",
-          "4 is not 3",
-          "5 is not 3",
-          "6 is not 3"
-        ))
-        assert(actualErrors === expectedErrors)
+        assert(actualErrors === Fail())
       },
       test("exhaustiveU") { () =>
         val actualErrors = exhaustiveU[Id, Int](testData) { i =>
-          if (i % 5 === 1) Fail.string(s"$i is 1 modulo 5")
+          if (i % 5 === 1) Fail()
           else Succeed()
         }
-        val expectedErrors = Fail.strings(List(
-          "61 is 1 modulo 5",
-          "51 is 1 modulo 5",
-          "41 is 1 modulo 5",
-          "31 is 1 modulo 5",
-          "21 is 1 modulo 5",
-          "11 is 1 modulo 5"
-        ))
-        assert(actualErrors === expectedErrors)
+        assert(actualErrors === Fail())
       }
     )
   }

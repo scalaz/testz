@@ -30,7 +30,7 @@
 
 package testz
 
-import runner._
+import runner.TestOutput
 
 import scala.concurrent.{ExecutionContext, Future}
 
