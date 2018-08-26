@@ -89,23 +89,7 @@ val standardSettings = Seq(
   headerLicense := Some(HeaderLicense.BSD3Clause("2018", "Edmund Noble")),
   resolvers += Resolver.sonatypeRepo("releases"),
 
-  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"),
-
-  libraryDependencies ++= Seq(
-  ),
-
-  fork in run := true,
-  javaOptions := Seq(
-    // we need discipline here.
-    "-Xms1G",
-    "-Xmx1G",
-
-    // our tests being single-threaded and careful about liveset size
-    // makes concurrent GC an incredibly good choice.
-    // latency doesn't matter, just concurrency, so no G1.
-    "-XX:+UseConcMarkSweepGC",
-    "-XX:MaxInlineLevel=35"
-  ))
+  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"))
 
 val publishSettings = Seq(
   organizationHomepage := None,
