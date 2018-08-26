@@ -55,8 +55,7 @@ object ExtrasSuite {
           "        first test inside of first inner section",
           "        second test inside of first inner section",
           "      [second inner section]",
-          "        first test inside of second inner section")
-        )
+          "        first test inside of second inner section"))
       }
     )
   }
