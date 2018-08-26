@@ -59,9 +59,7 @@ object z {
   }
 
   implicit val equalResult: Equal[Result] = Equal.equal {
-    case (f, s) if f eq s => true
-    case (f1: Fail, f2: Fail) => f1.failures == f2.failures
-    case _ => false
+    (f, s) => f eq s
   }
 
   implicit val monoidResult: Monoid[Result] = new Monoid[Result] {
@@ -69,39 +67,24 @@ object z {
     def append(f: Result, s: => Result): Result = Result.combine(f, s)
   }
 
-  abstract class TaskHarness[T[_]] { self =>
-    def test[R](name: String)(t: R => Task[Result]): T[R]
-
-    def section[R](name: String)(tests1: T[R], testss: T[R]*): T[R]
-
-    def bracket[R, I]
-      (init: Task[I])
-      (cleanup: I => Task[Unit])
-      (tests: T[(I, R)]
-    ): T[R]
-
-  }
-
   object TaskHarness {
 
     type Uses[R] = (R, List[String]) => Task[() => Unit]
 
-    def toHarness[T[_], R](harness: TaskHarness[T]): Harness[T[R]] = new Harness[T[R]] {
-      def test(name: String)(t: () => Result): T[R] =
-        harness.test[R](name)(_ => Task.delay(t()))
-      def section(name: String)(tests1: T[R], testss: T[R]*): T[R] =
-        harness.section(name)(tests1, testss: _*)
-    }
+    def makeFromPrinterEff(
+      printer: (List[String], Result) => Unit
+    ): EffectHarness[Task, Uses[Unit]] =
+      EffectResourceHarness.toEffectHarness(makeFromPrinterEffR(printer))
 
-    def make(
-      outputTest: (List[String], Result) => Unit
-    ): TaskHarness[Uses] = new TaskHarness[Uses] {
+    def makeFromPrinterEffR(
+      printer: (List[String], Result) => Unit
+    ): EffectResourceHarness[Task, Uses] = new EffectResourceHarness[Task, Uses] {
       def test[R](name: String)(assertion: R => Task[Result]): Uses[R] =
         (r, sc) => assertion(r).attempt.map {
           case \/-(es) =>
-            () => outputTest(sc, es)
-          case -\/(e) =>
-            () => outputTest(sc, Fail.error(e))
+            () => printer(sc, es)
+          case -\/(_) =>
+            () => printer(sc, Fail())
         }
 
       def section[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
@@ -113,14 +96,13 @@ object z {
       }
 
       def bracket[R, I]
-        (init: Task[I])
+        (init: () => Task[I])
         (cleanup: I => Task[Unit])
         (tests: Uses[(I, R)]
       ): Uses[R] = (r, sc) =>
-        init.flatMap {
+        init().flatMap {
           i => tests((i, r), sc).attempt.flatMap(p => p.fold(e => cleanup(i).flatMap(_ => Task.fail(e)), a => cleanup(i).as(a)))
         }
-
     }
   }
 

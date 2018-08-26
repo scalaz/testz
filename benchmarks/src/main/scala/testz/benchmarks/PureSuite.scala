@@ -31,8 +31,6 @@
 package testz
 package benchmarks
 
-import runner._
-
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
@@ -48,7 +46,7 @@ class BenchState {
 
   @Setup(Level.Trial)
   def doSetup(): Unit = {
-    bufferedOut = Runner.bufferedStdOut(4096)
+    bufferedOut = (_ => (), () => ())
   }
 }
 
@@ -66,11 +64,11 @@ class Bulk {
   var numSuites: Int = _
 
   abstract class PureSuite {
-    def tests[T[_]](harness: PureHarness[T]): T[Unit]
+    def tests[T[_]](harness: ResourceHarness[T]): T[Unit]
   }
 
   def failedSuite = new PureSuite {
-    def tests[T[_]](harness: PureHarness[T]): T[Unit] = {
+    def tests[T[_]](harness: ResourceHarness[T]): T[Unit] = {
       import harness._
 
       section("long, long section name")(
@@ -83,7 +81,7 @@ class Bulk {
   }
 
   def succeededSuite = new PureSuite {
-    def tests[T[_]](harness: PureHarness[T]): T[Unit] = {
+    def tests[T[_]](harness: ResourceHarness[T]): T[Unit] = {
       import harness._
 
       section("long, long section name")(
@@ -104,16 +102,16 @@ class Bulk {
       else
         (Console.print(_), () => ())
 
-    val config = Runner.defaultConfig.withOutputSuite(Runner.printStrs(_, print))
-
-    val harness = PureHarness.make((ls, res) => Runner.printStrs(Runner.printTest(ls, res), print))
+    val harness = PureHarness.makeFromPrinter(
+      els, res) => runner.printStrs(runner.printTest(ls, res), print)
+    )
 
     val suite = failedSuite
 
     val suites: List[() => Future[TestOutput]] =
       List.fill(numSuites)(() => Future.successful(suite.tests(harness)((), Nil)))
 
-    val result = Await.result(Runner.configured(suites, config, global), Duration.Inf)
+    val result = Await.result(runner.configured(suites, print, global), Duration.Inf)
 
     if (!result.failed) throw new Exception()
 
@@ -129,15 +127,15 @@ class Bulk {
       else
         (Console.print(_), () => ())
 
-    val config = Runner.defaultConfig.withOutputSuite(Runner.printStrs(_, print))
-
-    val harness = PureHarness.make((ls, res) => Runner.printStrs(Runner.printTest(ls, res), print))
+    val harness = PureResourceHarness.makeFromPrinter(
+      (ls, res) => runner.printStrs(runner.printTest(ls, res), print)
+    )
 
     val suite = succeededSuite
 
     val suites: List[() => Future[TestOutput]] = List.fill(numSuites)(() => Future.successful(suite.tests(harness)((), Nil)))
 
-    val result = Await.result(Runner.configured(suites, config, global), Duration.Inf)
+    val result = Await.result(runner(suites, print, global), Duration.Inf)
 
     if (result.failed) throw new Exception()
 

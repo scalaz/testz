@@ -39,13 +39,14 @@ object ExtrasSuite {
       test("entire harness") { () =>
         val docHarness = new DocHarness
         val buf = new scala.collection.mutable.ListBuffer[String]()
-        docHarness.section("outer section")(
-          docHarness.section("first inner section")(
-            docHarness.test[Unit]("first test inside of first inner section")(_ => Succeed),
-            docHarness.test[Unit]("second test inside of first inner section")(_ => Succeed)
+        import docHarness.{section => docSection, test => docTest}
+        docSection("outer section")(
+          docSection("first inner section")(
+            docTest("first test inside of first inner section")(() => Succeed),
+            docTest("second test inside of first inner section")(() => Succeed)
           ),
-          docHarness.section("second inner section")(
-            docHarness.test[Unit]("first test inside of second inner section")(_ => Succeed),
+          docSection("second inner section")(
+            docTest("first test inside of second inner section")(() => Succeed),
           )
         )("  ", buf)
         assert(buf.result() == List(

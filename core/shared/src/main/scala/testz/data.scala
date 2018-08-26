@@ -31,8 +31,8 @@
 package testz
 
 /**
-  The most boring `Harness` you can think of:
-  pure tests with no resources.
+  The most boring test `Harness` you can think of:
+  pure tests, with sections.
   Any harness type should be convertible to a `Harness`;
   it's the lingua franca of tests. If you write tests using
   `Harness`, they can be adapted to work with any suite type later.
@@ -50,67 +50,64 @@ abstract class Harness[T] {
 }
 
 /**
-  The type of test results.
-  A two-branch sum, either `S`, or `F(failures)`.
- `F` can contain 0 or more failure messages, and/or
-  throwables. The empty case of `F` is deliberately included;
-  it's the user's choice whether to add failure information.
-*/
-sealed abstract class Result
+  A test harness with test results in the effect `F[_]`.
+ */
+abstract class EffectHarness[F[_], T] {
+  def test
+    (name: String)
+    (assertions: () => F[Result])
+    : T
 
-final class Fail(val failures: List[Either[Throwable, String]]) extends Result {
-  override def toString(): String = "Failed(\n" + failures.mkString("  ", "\n  ",  "") + "\n)"
+  def section
+    (name: String)
+    (test1: T, tests: T*)
+    : T
 }
 
-object Fail {
-  @inline def apply(failures: List[Either[Throwable, String]]): Result =
-    new Fail(failures)
+object EffectHarness {
+  def toHarness[F[_], T](self: EffectHarness[F, T])(pure: Result => F[Result]): Harness[T] = new Harness[T] {
+    def test
+      (name: String)
+      (assertions: () => Result)
+      : T = self.test(name)(() => pure(assertions()))
 
-  @inline def strings(failures: List[String]): Result =
-    new Fail(failures.map(sa => Right(sa): Either[Throwable, String]))
-
-  @inline def string(failure: String): Result = new Fail(List(Right(failure)))
-
-  @inline def errors(errs: Throwable*): Result =
-    new Fail(errs.map(Left(_): Either[Throwable, String])(collection.breakOut))
-
-  @inline def error(err: Throwable): Result = new Fail(List(Left(err)))
-
-  val noMessage: Result = new Fail(Nil)
-}
-
-case object Succeed extends Result {
-  @inline final def apply(): Result = this
-  override def toString(): String = "Succeed()"
-}
-// TODO: use a pretty-printer?
-
-object Result {
-  def combine(first: Result, second: Result): Result =
-    if (first eq Succeed) second
-    else if (second eq Succeed) first
-    else {
-      new Fail(first.asInstanceOf[Fail].failures ++ second.asInstanceOf[Fail].failures)
+    def section
+      (name: String)
+      (test1: T, tests: T*)
+      : T = self.section(name)(test1, tests: _*)
     }
 }
 
-final class TestOutput(
-  val failed: Boolean,
-  val print: () => Unit
-)
+/**
+  A type for test results.
+  A two-branch sum, either `Succeed()`, or `Fail()`.
+*/
+sealed abstract class Result
 
-object TestOutput {
-  def combine(fst: TestOutput, snd: TestOutput) =
-    new TestOutput(
-      fst.failed || snd.failed,
-      { () => fst.print(); snd.print() }
-    )
+final class Fail private() extends Result {
+  override def toString(): String = "Fail()"
+  override def equals(other: Any): Boolean = other.asInstanceOf[AnyRef] eq this
+}
 
-  def combineAll1(output1: TestOutput, outputs: TestOutput*) = {
-    val anyFailed = output1.failed || outputs.exists(_.failed)
-    new TestOutput(
-      anyFailed,
-      { () => output1.print(); outputs.foreach(_.print()) }
-    )
-  }
+object Fail {
+  private val cached = new Fail()
+
+  def apply(): Result = cached
+}
+
+final class Succeed private() extends Result {
+  override def toString(): String = "Succeed()"
+  override def equals(other: Any): Boolean = other.asInstanceOf[AnyRef] eq this
+}
+
+object Succeed {
+  private val cached = new Succeed()
+
+  def apply(): Result = cached
+}
+
+object Result {
+  def combine(first: Result, second: Result): Result =
+    if (first eq second) first
+    else Fail()
 }

@@ -100,8 +100,9 @@ val standardSettings = Seq(
     "-Xms1G",
     "-Xmx1G",
 
-    // testz tests being single-threaded and careful about liveset size
+    // our tests being single-threaded and careful about liveset size
     // makes concurrent GC an incredibly good choice.
+    // latency doesn't matter, just concurrency, so no G1.
     "-XX:+UseConcMarkSweepGC",
     "-XX:MaxInlineLevel=35"
   ))
@@ -142,8 +143,25 @@ val util = crossProject(JSPlatform, JVMPlatform).in(file("util"))
 val utilJVM = util.jvm
 val utilJS = util.js
 
-val stdlib = crossProject(JSPlatform, JVMPlatform).in(file("stdlib"))
+val resource = crossProject(JSPlatform, JVMPlatform).in(file("resource"))
   .dependsOn(core, util)
+  .settings(name := "testz-resource")
+  .settings(standardSettings ++ publishSettings)
+
+val resourceJVM = resource.jvm
+val resourceJS = resource.js
+
+val runner = crossProject(JSPlatform, JVMPlatform).in(file("runner"))
+  .dependsOn(core, util)
+  .settings(name := "testz-runner")
+  .settings(standardSettings ++ publishSettings)
+  .enablePlugins(AutomateHeaderPlugin)
+
+val runnerJVM = runner.jvm
+val runnerJS = runner.js
+
+val stdlib = crossProject(JSPlatform, JVMPlatform).in(file("stdlib"))
+  .dependsOn(core, resource, runner, util)
   .settings(name := "testz-stdlib")
   .settings(standardSettings ++ publishSettings)
   .settings(
@@ -157,15 +175,6 @@ val stdlib = crossProject(JSPlatform, JVMPlatform).in(file("stdlib"))
 val stdlibJVM = stdlib.jvm
 val stdlibJS = stdlib.js
 
-val runner = crossProject(JSPlatform, JVMPlatform).in(file("runner"))
-  .dependsOn(core, util)
-  .settings(name := "testz-runner")
-  .settings(standardSettings ++ publishSettings)
-  .enablePlugins(AutomateHeaderPlugin)
-
-val runnerJVM = runner.jvm
-val runnerJS = runner.js
-
 val scalatest = crossProject(JSPlatform, JVMPlatform).in(file("scalatest"))
   .dependsOn(core)
   .settings(name := "testz-scalatest")
@@ -176,7 +185,7 @@ val scalatestJVM = scalatest.jvm
 val scalatestJS = scalatest.js
 
 val scalaz = project.in(file("scalaz"))
-  .dependsOn(coreJVM)
+  .dependsOn(coreJVM, resourceJVM, runnerJVM)
   .settings(name := "testz-scalaz")
   .settings(standardSettings ++ publishSettings)
   .settings(
@@ -202,7 +211,7 @@ val specs2JVM = specs2.jvm
 val specs2JS = specs2.js
 
 val extras = crossProject(JSPlatform, JVMPlatform).in(file("extras"))
-  .dependsOn(core, stdlib)
+  .dependsOn(core)
   .settings(name := "testz-extras")
   .settings(standardSettings ++ publishSettings)
   .enablePlugins(AutomateHeaderPlugin)
@@ -211,15 +220,15 @@ val extras = crossProject(JSPlatform, JVMPlatform).in(file("extras"))
 val extrasJVM = extras.jvm
 val extrasJS = extras.js
 
-lazy val tests = project.in(file("tests"))
+val tests = project.in(file("tests"))
   .settings(name := "testz-tests")
-  .dependsOn(coreJVM, extrasJVM, runnerJVM, scalatestJVM, scalaz, specs2JVM, stdlibJVM)
+  .dependsOn(coreJVM, extrasJVM, resourceJVM, runnerJVM, scalatestJVM, scalaz, specs2JVM, stdlibJVM)
   .settings(standardSettings ++ publishSettings)
   .settings(libraryDependencies ++= Seq(
     "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % Test))
   .enablePlugins(AutomateHeaderPlugin)
 
-lazy val benchmarks = project.in(file("benchmarks"))
+val benchmarks = project.in(file("benchmarks"))
   .dependsOn(coreJVM, runnerJVM, scalatestJVM, scalaz, stdlibJVM, specs2JVM)
   .settings(name := "testz-benchmarks")
   .settings(skip in publish := true)
@@ -230,7 +239,7 @@ lazy val benchmarks = project.in(file("benchmarks"))
 /** A project just for the console.
   * Applies only the settings necessary for that purpose.
   */
-lazy val repl = project
+val repl = project
   .dependsOn(tests % "compile->test")
   .dependsOn(benchmarks)
   .settings(standardSettings)
@@ -250,7 +259,7 @@ lazy val repl = project
     """.stripMargin.trim
   )
 
-lazy val docs = project
+val docs = project
   .settings(name := "testz-docs")
   .dependsOn(coreJVM, extrasJVM, runnerJVM, scalatestJVM, scalaz, specs2JVM, stdlibJVM)
   .settings(standardSettings)
@@ -267,10 +276,10 @@ lazy val docs = project
     micrositeGithubOwner      := "edmundnoble",
     micrositeGithubRepo       := "testz",
     micrositeBaseUrl          := "/testz",
-    micrositeDocumentationUrl := "/testz/docs/01-Getting-Started.html",
+    micrositeDocumentationUrl := "/testz/docs/01-first-example.html",
     micrositeHighlightTheme   := "color-brewer")
 
-lazy val root = Project("root", file("."))
+val root = Project("root", file("."))
   .settings(name := "testz")
   .settings(standardSettings)
   .settings(skip in publish := true)
@@ -281,6 +290,7 @@ lazy val root = Project("root", file("."))
     docs,
     extrasJVM, extrasJS,
     repl,
+    resourceJVM, resourceJS,
     runnerJVM, runnerJS,
     scalatestJVM, scalatestJS,
     scalaz,

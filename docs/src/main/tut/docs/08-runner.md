@@ -1,6 +1,6 @@
 ---
 layout: docs
-title: runner
+title: testz-runner
 ---
 
 # {{ page.title }}
@@ -12,17 +12,22 @@ The suites are passed as `() => Suite` in order to avoid keeping
 test data in memory.
 
 ```scala
-object Runner {
-  def apply(suites: List[() => Suite])(implicit ec: ExecutionContext): Future[Unit]
+object runner {
+  def apply(
+    suites: List[() => Future[TestOutput]]
+  )(
+    ec: ExecutionContext
+  ): Future[TestResult]
 }
 ```
 
-The test suite type expected by the runner is:
+The test output type expected by the runner is:
 
 ```scala
-trait Suite {
-  def run(ec: ExecutionContext): Future[List[String]]
-}
+final class TestOutput(
+  val failed: Boolean,
+  val print: () => Unit
+)
 ```
 
 Any value of type `Suite` can be run by the runner.

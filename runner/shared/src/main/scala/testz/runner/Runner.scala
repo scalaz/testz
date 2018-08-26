@@ -29,60 +29,92 @@
  */
 
 package testz
-package runner
 
-import java.io.{BufferedOutputStream, FileDescriptor, FileOutputStream}
-import java.nio.charset.StandardCharsets
 import scala.concurrent.{ExecutionContext, Future}
 
-object Runner {
+object runner {
   /**
-   * Configuration.
-   * Forwards-compatible by construction.
-   */
-  final class Config private[Runner](
-    private val _chunkSize: Int,
-    private val _outputSuite: List[String] => Unit
-  ) {
-    def withChunkSize(newChunkSize: Int) =
-      new Config(newChunkSize, _outputSuite)
-    def withOutputSuite(newOutputSuite: List[String] => Unit) =
-      new Config(_chunkSize, newOutputSuite)
-    def chunkSize: Int = _chunkSize
-    def outputSuite: List[String] => Unit = _outputSuite
+  * Something you can use to represent the intermediate output
+  * of a typical `Harness`; a failure state and a side effect
+  * which prints all results.
+  */
+  final class TestOutput(
+    val failed: Boolean,
+    val print: () => Unit
+  )
+
+  object TestOutput {
+    // The `mappend` operation for the `Monoid` of `TestOutput`s.
+    // If either fails, the result fails.
+    @inline def combine(fst: TestOutput, snd: TestOutput) =
+      new TestOutput(
+        fst.failed || snd.failed,
+        { () => fst.print(); snd.print() }
+      )
+
+    // Combines 1 or more `TestOutput`s, using asymptotically less stack
+    // depth than `combine`. In fact, this takes us from "linear in number
+    // of tests" to "linear in depth of test tree", which is a goal
+    // asymptotic for testz in general.
+    @inline def combineAll1(output1: TestOutput, outputs: TestOutput*) = {
+      val anyFailed = output1.failed || outputs.exists(_.failed)
+      new TestOutput(
+        anyFailed,
+        { () => output1.print(); outputs.foreach(_.print()) }
+      )
+    }
   }
 
+  /**
+   * For `runner.apply` to return; after all is said and done,
+   * tests run and output printed, did any fail?
+   * Useful for exit status.
+   */
   final class TestResult(val failed: Boolean)
 
-  def bufferedStdOut(bufferSize: Int): (String => Unit, () => Unit) = {
-    val out = new BufferedOutputStream(new FileOutputStream(FileDescriptor.out), bufferSize)
-    (str =>
-      if (!str.isEmpty) {
-        out.write(str.getBytes(StandardCharsets.UTF_8), 0, str.length)
-      }, () => out.flush())
+  /**
+   * The meat of the runner.
+   * Takes a list of `() => Future[TestOutput]` and runs all of them in sequence.
+   * Then, prints out how long the suites took to run, using the user-supplied printer.
+   * Returns whether any tests failed.
+   */
+  def apply(suites: List[() => Future[TestOutput]], printer: String => Unit, ec: ExecutionContext): Future[TestResult] = {
+    val startTime = System.currentTimeMillis
+    val run: Future[Boolean] = futureUtil.orIterator(suites.iterator.map { suite =>
+      futureUtil.map(suite()) { r => r.print(); r.failed }(ec)
+    })(ec)
+    if (run.isCompleted) {
+      // hot path: testing was fully synchronous,
+      // so we don't need to submit to the ExecutionContext.
+      val endTime = System.currentTimeMillis
+      printer(
+        "Testing took " +
+        String.valueOf(endTime - startTime) +
+        "ms.\n"
+      )
+      Future.successful(new TestResult(run.value.get.get))
+    } else {
+      // slow path
+      run.map { f =>
+        val endTime = System.currentTimeMillis
+        printer(
+          "Testing took " +
+          String.valueOf(endTime - startTime) +
+          "ms.\n"
+        )
+        new TestResult(f)
+      }(ec)
+    }
   }
 
-  val defaultChunkSize: Int = 100
-  val defaultOutputSuite: List[String] => Unit =
-    _.foreach(Console.print)
-  val newlineSingleton =
+  // Cached for performance.
+  private val newlineSingleton =
     "\n" :: Nil
 
   /**
-   * It seems sub-optimal to chunk at 100 suites;
-   * in fact, it seems sub-optimal to chunk at all.
-   * We're optimizing for quick suites, though.
-   * If you have long-running suites, the chunking will hopefully
-   * not interfere much because of how large the chunks are.
-   * Right now, the chunks aren't very useful. They would be
-   * if we ran suites in parallel.
+   * These four functions are just utility methods for users to write fast
+   * test result printers.
    */
-  val defaultConfig: Config =
-    new Config(
-      _chunkSize = defaultChunkSize,
-      _outputSuite = defaultOutputSuite
-    )
-
   @scala.annotation.tailrec
   def printStrs(strs: List[String], output: String => Unit): Unit = strs match {
     case x :: xs => output(x); printStrs(xs, output)
@@ -101,52 +133,14 @@ object Runner {
     case _ =>
   }
 
-  /**
-   * This is the meat of the runner.
-   * It takes a list of `() => Future[TestOutput]` and runs all of them in
-   * sequence, taking cues from a passed `Config` value,
-   * and returning whether any tests failed.
-   */
-  def configured(suites: List[() => Future[TestOutput]], config: Config, ec: ExecutionContext): Future[TestResult] = {
-    val startTime = System.currentTimeMillis
-    val run: Future[Boolean] = futureUtil.orIterator(suites.iterator.map { suite =>
-      futureUtil.map(suite()) { r => r.print(); r.failed }(ec)
-    })(ec)
-    if (run.isCompleted) {
-      // hot path: testing was fully synchronous,
-      // so we don't need to submit to the ExecutionContext.
-      val endTime = System.currentTimeMillis
-      config.outputSuite(
-        "Testing took " ::
-        String.valueOf(endTime - startTime) ::
-        "ms (synchronously)\n" ::
-        Nil
-      )
-      Future.successful(new TestResult(run.value.get.get))
-    } else {
-      // slow path
-      run.map { f =>
-        val endTime = System.currentTimeMillis
-        config.outputSuite(
-          "Testing took " ::
-          String.valueOf(endTime - startTime) ::
-          "ms (asynchronously) \n" ::
-          Nil
-        )
-        new TestResult(f)
-      }(ec)
-    }
-  }
-
-  def apply(suites: List[() => Future[TestOutput]], ec: ExecutionContext): Future[TestResult] =
-    configured(suites, defaultConfig, ec)
-
+  // Note that tests which succeed never have results printed
+  // (if you use this function)
   def printTest(scope: List[String], out: Result): List[String] = out match {
-    case Succeed => Nil
-    case _       => fastConcatDelim(new ::("failed\n", scope), "->")
+    case _: Succeed => Nil
+    case _          => intersperse(new ::("failed\n", scope), "->")
   }
 
-  def fastConcatDelim(strs: ::[String], delim: String): ::[String] = {
+  def intersperse(strs: ::[String], delim: String): ::[String] = {
     if (strs.tail eq Nil) {
       strs
     } else {
@@ -163,4 +157,5 @@ object Runner {
       newList.asInstanceOf[::[String]]
     }
   }
+
 }

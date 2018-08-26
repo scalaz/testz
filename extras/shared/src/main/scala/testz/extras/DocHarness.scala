@@ -33,23 +33,16 @@ package extras
 
 import scala.collection.mutable.ListBuffer
 
-final class DocHarness extends PureHarness[DocHarness.Uses] {
-  def test[R]
+final class DocHarness extends Harness[DocHarness.Uses] {
+  def test
     (name: String)
-    (assertions: R => Result)
+    (assertions: () => Result)
     : (String, ListBuffer[String]) => Unit = {
       (indent, buf) =>
         buf += (indent + "  " + name)
     }
 
-  // Can't think of a way to document this, so we don't.
-  def allocate[R, I]
-    (init: () => I
-    )(tests: (String, ListBuffer[String]) => Unit
-    ): (String, ListBuffer[String]) => Unit =
-      tests
-
-  def section[R](name: String)(
+  def section(name: String)(
     test1: (String, ListBuffer[String]) => Unit,
     tests: (String, ListBuffer[String]) => Unit*
   ): (String, ListBuffer[String]) => Unit = {
@@ -63,5 +56,5 @@ final class DocHarness extends PureHarness[DocHarness.Uses] {
 }
 
 object DocHarness {
-  type Uses[R] = (String, ListBuffer[String]) => Unit
+  type Uses = (String, ListBuffer[String]) => Unit
 }

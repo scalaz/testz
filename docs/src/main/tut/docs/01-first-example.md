@@ -1,6 +1,6 @@
 ---
 layout: docs
-title: A First Example
+title: First Example
 ---
 
 # {{ page.title }}
@@ -38,9 +38,9 @@ All suites are run synchronously if possible, but will use the
 `ExecutionContext` if any tests inside use asynchrony.
 
 ```tut:book
-val harness: Harness[PureHarness.Uses[Unit]] =
-  PureHarness.toHarness(
-    PureHarness.make((name, result) => println(s"name: result"))
+val harness =
+  PureHarness.makeFromPrinter((name, result) =>
+    println(s"${name.reverse.mkString("[\"", "\"->\"", "\"]:")} $result")
   )
 (new MathTests()).tests(harness)((), Nil).print()
 ```
@@ -122,7 +122,7 @@ Note: `() =>` is actually needed to avoid computing test registrations
       adjacent to tests, this is something you can alter.
 
 ```scala
-assert(1 + 1 === 2)
+assert(1 + 1 == 2)
 ```
 
 Here's the only assertion we've got.

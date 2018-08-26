@@ -30,34 +30,45 @@
 
 package testz
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
+import ExecutionContext.global
 import scala.concurrent.duration.Duration
-import scala.concurrent.ExecutionContext.global
-
-import testz.runner._
 
 object Main {
-  val harness: Harness[PureHarness.Uses[Unit]] =
-    PureHarness.toHarness(
-      PureHarness.make(
-        (ls, tr) => Runner.printStrs(Runner.printTest(ls, tr), print)
-      )
-    )
+  val printer: (List[String], Result) => Unit =
+    (ls, tr) => runner.printStrs(runner.printTest(ls, tr), print)
+
+  val harness =
+    PureHarness.makeFromPrinter(printer)
+
+  val futureHarness =
+    FutureHarness.makeFromPrinterEff(printer)(global)
 
   def tests[T](harness: Harness[T]): List[(String, T)] = List(
     ("Extras tests", ExtrasSuite.tests(harness)),
-    ("Stdlib tests", StdlibSuite.tests(harness)),
     ("Property tests", PropertySuite.tests(harness)),
+    ("Stdlib tests", StdlibSuite.tests(harness)),
   )
 
-  def suites(harness: Harness[PureHarness.Uses[Unit]]): List[() => Future[TestOutput]] =
+  def futureTests[T](futureHarness: EffectHarness[Future, T], ec: ExecutionContext): List[(String, T)] = List(
+    ("Runner tests", RunnerSuite.tests(futureHarness, ec)),
+  )
+
+  @inline def suites: List[() => Future[TestOutput]] =
     tests(harness).map {
       case (name, suite) =>
         () => Future.successful(suite((), List(name)))
     }
 
+  @inline def futureSuites: List[() => Future[TestOutput]] =
+    futureTests(futureHarness, global).map {
+      case (name, suite) =>
+        () => suite((), List(name))
+    }
+
   def main(args: Array[String]): Unit = {
-    val result = Await.result(Runner(suites(harness), global), Duration.Inf)
+    val runSuites = runner(futureSuites ++ suites, Console.print(_), global)
+    val result = Await.result(runSuites, Duration.Inf)
 
     if (result.failed) throw new Exception("some tests failed")
   }

@@ -35,7 +35,7 @@ object StdlibSuite {
     import harness._
     section("assert")(
       test("success") { () =>
-        if (assert(true) eq Succeed) Succeed()
+        if (assert(true) eq Succeed()) Succeed()
         else Fail.noMessage
       },
       test("failure") { () =>
