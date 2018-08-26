@@ -37,9 +37,14 @@ import ExecutionContext.global
 import scala.concurrent.duration.Duration
 
 object Main {
+  // The "default" way to print test results:
+  // use `runner.printTest` for formatting and
+  // `runner.printStrs` with `Console.print`
+  // for printing.
   val printer: (List[String], Result) => Unit =
-    (ls, tr) => runner.printStrs(runner.printTest(ls, tr), print)
+    (ls, tr) => runner.printStrs(runner.printTest(ls, tr), Console.print)
 
+  // Not always a good choice; parallelism slows down some VMs, for example.
   val ec = global
 
   val harness =
@@ -61,6 +66,8 @@ object Main {
     RunnerSuite.tests(futureHarness, ec)((), List("Runner tests"))
 
   def main(args: Array[String]): Unit = {
+    // Evaluate tests before the runner expects,
+    // for parallelism.
     val testOutputs: List[() => Future[TestOutput]] = List(
       Future(unitTests)(ec),
       Future(propertyTests)(ec),

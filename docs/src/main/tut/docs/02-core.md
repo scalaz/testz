@@ -84,6 +84,7 @@ sealed abstract class Result
 
 final class Fail private() extends Result {
   override def toString(): String = "Fail()"
+  override def equals(other: Any): Boolean = other.asInstanceOf[AnyRef] eq this
 }
 
 object Fail {
@@ -94,6 +95,7 @@ object Fail {
 
 final class Succeed private() extends Result {
   override def toString(): String = "Succeed()"
+  override def equals(other: Any): Boolean = other.asInstanceOf[AnyRef] eq this
 }
 
 object Succeed {
