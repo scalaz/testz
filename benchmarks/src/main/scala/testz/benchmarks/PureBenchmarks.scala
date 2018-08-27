@@ -31,14 +31,14 @@
 package testz
 package benchmarks
 
+import runner.TestOutput
+
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
 import scala.concurrent.ExecutionContext.global
 
-import org.openjdk.jmh.annotations.{
-  Benchmark, BenchmarkMode, Level, Mode, OutputTimeUnit, Param, Scope, Setup, State
-}
+import org.openjdk.jmh.annotations._
 
 @State(Scope.Benchmark)
 class BenchState {
@@ -51,10 +51,11 @@ class BenchState {
 }
 
 @BenchmarkMode(Array(Mode.Throughput))
+@Measurement(time = 500, timeUnit = TimeUnit.MILLISECONDS)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
-class Bulk {
-  @Param(value = Array("true", "false"))
+class BulkPureBenchmarks {
+  @Param(value = Array("true")) //, "false"))
   var newOutput: Boolean = _
 
   @Param(value = Array("50"))
@@ -63,31 +64,27 @@ class Bulk {
   @Param(value = Array("500"))
   var numSuites: Int = _
 
-  abstract class PureSuite {
-    def tests[T[_]](harness: ResourceHarness[T]): T[Unit]
-  }
-
-  def failedSuite = new PureSuite {
-    def tests[T[_]](harness: ResourceHarness[T]): T[Unit] = {
+  object FailedSuite {
+    def tests[T](harness: Harness[T]): T = {
       import harness._
 
       section("long, long section name")(
-        test("test number 0")(_ => Fail.noMessage),
+        test("test number 0")(() => Fail()),
         List.tabulate(perSuite - 1)(n =>
-          test[Unit]("test number " + (n + 1))(_ => Fail.noMessage)
+          test("test number " + (n + 1))(() => Fail())
         ): _*
       )
     }
   }
 
-  def succeededSuite = new PureSuite {
-    def tests[T[_]](harness: ResourceHarness[T]): T[Unit] = {
+  object SucceededSuite {
+    def tests[T](harness: Harness[T]): T = {
       import harness._
 
       section("long, long section name")(
-        test("test number 0")(_ => Succeed),
+        test("test number 0")(() => Succeed()),
         List.tabulate(perSuite - 1)(n =>
-          test[Unit]("test number " + (n + 1))(_ => Succeed)
+          test("test number " + (n + 1))(() => Succeed())
         ): _*
       )
     }
@@ -103,15 +100,15 @@ class Bulk {
         (Console.print(_), () => ())
 
     val harness = PureHarness.makeFromPrinter(
-      els, res) => runner.printStrs(runner.printTest(ls, res), print)
+      (ls, res) => runner.printStrs(runner.printTest(ls, res), print)
     )
 
-    val suite = failedSuite
-
     val suites: List[() => Future[TestOutput]] =
-      List.fill(numSuites)(() => Future.successful(suite.tests(harness)((), Nil)))
+      List.fill(numSuites)(() =>
+        Future.successful(FailedSuite.tests(harness)((), Nil))
+      )
 
-    val result = Await.result(runner.configured(suites, print, global), Duration.Inf)
+    val result = Await.result(runner(suites, print, global), Duration.Inf)
 
     if (!result.failed) throw new Exception()
 
@@ -127,13 +124,14 @@ class Bulk {
       else
         (Console.print(_), () => ())
 
-    val harness = PureResourceHarness.makeFromPrinter(
+    val harness = PureHarness.makeFromPrinter(
       (ls, res) => runner.printStrs(runner.printTest(ls, res), print)
     )
 
-    val suite = succeededSuite
-
-    val suites: List[() => Future[TestOutput]] = List.fill(numSuites)(() => Future.successful(suite.tests(harness)((), Nil)))
+    val suites: List[() => Future[TestOutput]] =
+      List.fill(numSuites)(() =>
+        Future.successful(SucceededSuite.tests(harness)((), Nil))
+      )
 
     val result = Await.result(runner(suites, print, global), Duration.Inf)
 

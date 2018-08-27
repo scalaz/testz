@@ -20,18 +20,24 @@ abstract class ResourceHarness[T[_]] { self =>
 }
 ```
 
-For an idea of what `T[A]` represents, think of `T[_]` as a contravariant
-functor. `T[A]` is a group of tests which *depend on* a resource of type `A`.
+`T[A]` is a group of tests which *depend on* a resource of type `A`.
+`T[_]` is likely to be a contravariant functor.
 This is explained by `test` taking a function `R => Result`, rather than an
 `() => Result` as in `Harness`.
 
-Therefore, to express a group of tests with all resources accounted for -
-this includes the case of no resources needed at all - the type `T[Unit]` suffices.
+Therefore, to type a group of tests with all resources accounted for -
+including the case of no resources needed at all - the type `T[Unit]` suffices.
 
 `allocate` can be used to "fill in" one of the resources required by
 a group of tests, by describing how the resource is allocated.
-After all tests within an `allocate` block execute, the resource being allocated
-is no longer referenced.
+
+Resources should be allocated immediately before all tests within an `allocate` block
+execute. After all tests within an `allocate` block execute, the resource being
+allocated should no longer be referenced.
+
+The intent behind `allocate` is to keep test data short-lived; data which
+is live for a long time is promoted to the old generation, making garbage collection
+much more expensive.
 
 Here's an example:
 

@@ -245,7 +245,9 @@ val repl = project
 
 val docs = project
   .settings(name := "testz-docs")
-  .dependsOn(coreJVM, extrasJVM, runnerJVM, scalatestJVM, scalaz, specs2JVM, stdlibJVM)
+  .dependsOn(
+    benchmarks, coreJVM, extrasJVM, runnerJVM, scalatestJVM, scalaz, specs2JVM, stdlibJVM, utilJVM
+  )
   .settings(standardSettings)
   .settings(skip in publish := true)
   .enablePlugins(MicrositesPlugin)

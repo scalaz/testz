@@ -52,10 +52,8 @@ object runner {
         { () => fst.print(); snd.print() }
       )
 
-    // Combines 1 or more `TestOutput`s, using asymptotically less stack
-    // depth than `combine`. In fact, this takes us from "linear in number
-    // of tests" to "linear in depth of test tree", which is a goal
-    // asymptotic for testz in general.
+    // Combines 1 or more `TestOutput`s, using logarithmic stack depth in the number of
+    // tests unlike `combine` which would be linear.
     @inline def combineAll1(output1: TestOutput, outputs: TestOutput*) = {
       val anyFailed = output1.failed || outputs.exists(_.failed)
       new TestOutput(
@@ -66,9 +64,10 @@ object runner {
   }
 
   /**
-   * For `runner.apply` to return; after all is said and done,
+   * Returned by `runner.apply` - after all is said and done,
    * tests run and output printed, did any fail?
-   * Useful for exit status.
+   * Useful for exit status; I often check `failed` and throw an exception
+   * in `main` if it's `true`.
    */
   final class TestResult(val failed: Boolean)
 
@@ -83,28 +82,15 @@ object runner {
     val run: Future[Boolean] = futureUtil.orIterator(suites.iterator.map { suite =>
       futureUtil.map(suite()) { r => r.print(); r.failed }(ec)
     })(ec)
-    if (run.isCompleted) {
-      // hot path: testing was fully synchronous,
-      // so we don't need to submit to the ExecutionContext.
+    futureUtil.map(run) { f =>
       val endTime = System.currentTimeMillis
       printer(
         "Testing took " +
         String.valueOf(endTime - startTime) +
         "ms.\n"
       )
-      Future.successful(new TestResult(run.value.get.get))
-    } else {
-      // slow path
-      run.map { f =>
-        val endTime = System.currentTimeMillis
-        printer(
-          "Testing took " +
-          String.valueOf(endTime - startTime) +
-          "ms.\n"
-        )
-        new TestResult(f)
-      }(ec)
-    }
+      new TestResult(f)
+    }(ec)
   }
 
   // Cached for performance.
@@ -133,13 +119,6 @@ object runner {
     case _ =>
   }
 
-  // Note that tests which succeed never have results printed
-  // (if you use this function)
-  def printTest(scope: List[String], out: Result): List[String] = out match {
-    case _: Succeed => Nil
-    case _          => intersperse(new ::("failed\n", scope), "->")
-  }
-
   def intersperse(strs: ::[String], delim: String): ::[String] = {
     if (strs.tail eq Nil) {
       strs
@@ -156,6 +135,13 @@ object runner {
       }
       newList.asInstanceOf[::[String]]
     }
+  }
+
+  // Note that tests which succeed never have results printed
+  // (if you use this function)
+  def printTest(scope: List[String], out: Result): List[String] = out match {
+    case _: Succeed => Nil
+    case _          => intersperse(new ::("failed\n", scope), "->")
   }
 
 }
