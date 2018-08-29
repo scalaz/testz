@@ -17,7 +17,7 @@ publishTo in ThisBuild := {
     Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 
-lazy val sonataCredentials = for {
+val sonataCredentials = for {
   username <- sys.env.get("SONATYPE_USERNAME")
   password <- sys.env.get("SONATYPE_PASSWORD")
 } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)
@@ -237,8 +237,7 @@ val repl = project
       |import testz.benchmarks._
       |import testz.extras._
       |import testz.runner._
-      |import testz.property._
-      |import testz.z._
+      |import testz.z._, z.streaming._
       |import scalaz._, scalaz.Scalaz._
     """.stripMargin.trim
   )

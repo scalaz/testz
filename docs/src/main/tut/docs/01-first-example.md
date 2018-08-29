@@ -103,7 +103,7 @@ Note: The type returned by `tests` is abstract,
       test harness types.
 
 ```scala
-  import harness._
+import harness._
 ```
 
 We also import all of the methods from `harness`;

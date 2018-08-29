@@ -14,9 +14,13 @@ Doing less in general is what makes testz's performance so good.
 Fewer classes to load, fewer trampoline jumps (none),
 fewer thread pool submissions (none, by default).
 
-In practice, the overhead of testz is zero.
+In practice, the overhead of testz is totally dominated by classloading.
 
-Take a look at the benchmarks in `BulkPureBenchmarks.scala`.
+Testz's tests themselves take 150ms on the first run (classloading)
+and 0-1 ms on the next; the JIT still isn't involved because testz
+code isn't called enough to be JITted.
+
+As well, take a look at the benchmarks in `BulkPureBenchmarks.scala`.
 
 Running 500 test suites with 50 tests each, where all of the tests do nothing but
 return success or failure, takes 500 ms (on my machine, of course), JIT totally
@@ -27,4 +31,3 @@ JITted and the class loading won't be a factor, bringing it to below 10 ms.
 
 Seriously, testz is NEVER responsible for slowdown, and if you find that it is,
 let me know.
-
