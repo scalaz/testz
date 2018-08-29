@@ -21,10 +21,10 @@ Take a look at the benchmarks in `BulkPureBenchmarks.scala`.
 Running 500 test suites with 50 tests each, where all of the tests do nothing but
 return success or failure, takes 500 ms (on my machine, of course), JIT totally
 disabled (`-Xint`), including class loading time and `object` + static class
-initialization. In practice, especially if running tests multiple times within the
-same VM, a few things from the Java and Scala runtimes will usually be JITted and the
-class loading won't be a factor, bringing it to below 10 ms.
+initialization. In practice, especially if running tests multiple times within
+the same VM, a few things from the Java and Scala runtimes will usually be
+JITted and the class loading won't be a factor, bringing it to below 10 ms.
 
-Seriously, testz is NEVER responsible for slowdown, and if you find that it is, let me
-know.
+Seriously, testz is NEVER responsible for slowdown, and if you find that it is,
+let me know.
 

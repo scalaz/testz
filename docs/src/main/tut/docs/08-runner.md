@@ -13,7 +13,7 @@ of the `TestOutput`s.
 
 Prerequisite imports:
 
-```tut:book
+```tut:silent
 import testz._
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,7 +30,7 @@ Because computing the `TestOutput` and running the inner `print()` are separate,
 it's easy to execute testz suites (and tests) in parallel without interleaving
 the results.
 
-```tut:book
+```tut:silent
 final class TestOutput(
   val failed: Boolean,
   val print: () => Unit
@@ -64,7 +64,7 @@ then, the stack usage will be constant regardless of the length of `tests`.
 This gets us exactly the asymptotics we need: one stack frame per level of the
 test tree.
 
-```tut:book
+```tut:silent
 object TestOutput {
   // The `mappend` operation for the `Monoid` of `TestOutput`s.
   // If either fails, the result fails.
@@ -91,7 +91,7 @@ tests run and output printed, did any fail?
 Useful for exit status; I often check `failed` and throw an exception
 in `main` if it's `true`.
 
-```tut:book
+```tut:silent
 final class TestResult(val failed: Boolean)
 ```
 
@@ -118,7 +118,7 @@ Most of what the runner does is a) time measurement and b) this:
 That code runs each test suite, then prints out their results, while accumulating
 the failure state.
 
-```tut:book
+```tut:silent
   def apply(suites: List[() => Future[TestOutput]], printer: String => Unit, ec: ExecutionContext): Future[TestResult] = {
     val startTime = System.currentTimeMillis
     val run: Future[Boolean] = futureUtil.orIterator(suites.iterator.map { suite =>
@@ -138,16 +138,15 @@ the failure state.
 
 Cached for performance.
 
-```tut:book
+```tut:silent
 val newlineSingleton =
   "\n" :: Nil
 ```
 
-```tut:book
-/**
-  * These four functions are just utility methods for users to write fast
-  * test result printers.
-  */
+These four functions are just utility methods for users to write fast
+test result printers.
+
+```tut:silent
 @scala.annotation.tailrec
 def printStrs(strs: List[String], output: String => Unit): Unit = strs match {
   case x :: xs => output(x); printStrs(xs, output)
@@ -190,15 +189,4 @@ def printTest(scope: List[String], out: Result): List[String] = out match {
   case _: Succeed => Nil
   case _          => intersperse(new ::("failed\n", scope), "->")
 }
-
 ```
-
-## Internals
-
-The runner avoids interleaving test output because `Suite`
-doesn't print to standard out itself; that's the runner's job.
-It prints output given by the `Suite`.
-
-As well, `() => Suite`s are run fully sequentially, and if a
-`Suite` runs synchronously, the passed `ExecutionContext` is not
-used.

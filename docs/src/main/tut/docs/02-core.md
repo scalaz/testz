@@ -53,6 +53,7 @@ translation of `Result` to `F[Result]`, `toHarness` is a "default" translation o
 `EffectHarness[F, T]` to `Harness[T]`.
 
 ```scala
+object EffectHarness {
   def toHarness[F[_], T](
     self: EffectHarness[F, T]
   )(
@@ -68,6 +69,7 @@ translation of `Result` to `F[Result]`, `toHarness` is a "default" translation o
       (test1: T, tests: T*)
       : T = self.section(name)(test1, tests: _*)
   }
+}
 ```
 
 The type of test results in testz is `Result`.

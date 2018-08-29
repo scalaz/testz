@@ -20,7 +20,7 @@ it needs and the current test group name (and all labels attached to it)
 produces a `TestOutput`, which describes both how to print the results
 of the group and whether any tests failed.
 
-```tut:book
+```tut:silent
 import testz._
 import testz.runner.TestOutput
 
@@ -79,7 +79,7 @@ It's a lot more verbose than `PureHarness`, mostly because I'm careful with
 `Future` that are very useful in implementing the harness in a clear and concise
 way.
 
-```tut:book
+```tut:silent
 import testz._
 import testz.runner.TestOutput
 
@@ -143,13 +143,13 @@ object FutureHarness {
         (init: () => Future[I])
         (cleanup: I => Future[Unit])
         (tests: Uses[(I, R)]
-      ): Uses[R] = { (r, sc) =>
+      ): Uses[R] = { (otherResources, sc) =>
         init().flatMap { i =>
           blockingTransform(
-            tests((i, r), sc)
-          )(r =>
+            tests((i, otherResources), sc)
+          )(result =>
             cleanup(i).flatMap(_ =>
-              fromTry(r)
+              fromTry(result)
             )(ec)
           )(ec)
         }(ec)

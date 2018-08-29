@@ -41,7 +41,7 @@ much more expensive.
 
 Here's an example:
 
-```tut:book
+```tut:silent
 import testz._
 
 object TestsWithResources {

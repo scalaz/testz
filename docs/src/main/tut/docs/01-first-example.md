@@ -5,40 +5,46 @@ title: First Example
 
 # {{ page.title }}
 
-Let’s start with a simple version of a pure test suite, using the
-most basic test harness type provided. We'll be using `testz-core`,
-`testz-runner`, and `testz-stdlib`.
+Let’s start with a simple, pure test suite, using the
+most basic harness type provided. We'll be using `testz-core`
+and `testz-stdlib`, but the actual test code will only use `testz-core`.
 
-It's our harness provided in `testz.PureHarness`.
+Obligatory imports:
 
 ```tut:silent
 import testz.{Harness, PureHarness, assert}
-import scala.concurrent.ExecutionContext.global
+```
 
+And here's the meat.
+
+```tut:silent
 final class MathTests {
   def tests[T](harness: Harness[T]): T = {
     import harness._
     section("math must")(
       test("say 1 + 1 == 2") { () =>
         assert(1 + 1 == 2)
+      },
+      test("say 2 * 2 == 4") { () =>
+        assert(2 * 2 == 4)
       }
     )
   }
 }
 ```
 
-To run this type of test suite using the default testz runner,
-just call `.run` with an `ExecutionContext`; the global one is usually fine.
+To run this test suite, pass it the `Harness` it wants.
+First to do that we have to construct the `Harness`, using
+`PureHarness.makeFromPrinter`; `makeFromPrinter` expects
+an impure function which can be used to print test results
+(`(List[String], Result) => Unit`), and that's what we give it.
 
-Note: By default, using the runner will not use the `ExecutionContext`
-      unless you use it in your tests - suites are not run concurrently,
-      we just use it to `flatMap` asynchronous suites.
-
-All suites are run synchronously if possible, but will use the
-`ExecutionContext` if any tests inside use asynchrony.
+It will return a `T`, in this case `PureHarness.Uses[Unit]`,
+which is `(Unit, List[String]) => TestOutput`.
+`TestOutput` has a method `print()` which you can use to see the output.
 
 ```tut:book
-val harness =
+val harness: Harness[PureHarness.Uses[Unit]] =
   PureHarness.makeFromPrinter((name, result) =>
     println(s"${name.reverse.mkString("[\"", "\"->\"", "\"]:")} $result")
   )
@@ -51,7 +57,11 @@ I went through a lot there; let's dissect that.
 import testz.{Harness, PureHarness, assert}
 ```
 
-Here I import `Harness[_]`, the simplest type of test harnesses..
+Here I import `Harness`, the simplest type of test harnesses,
+`PureHarness`, an actual test harness implementation,
+and the `assert` function.
+
+`PureHarness` is from testz-stdlib, and the others are from testz-core.
 
 Conventionally, test suites are written with an abstract method
 that takes some type of harness as a parameter and returns
@@ -125,8 +135,17 @@ Note: `() =>` is actually needed to avoid computing test registrations
 assert(1 + 1 == 2)
 ```
 
-Here's the only assertion we've got.
-It'll give you a `TestResult` which is a `Failure` if the two
-arguments aren't equal using `===`, and otherwise a `Success`.
+Here's the assertion inside.
+It'll give you a `Result` which is `Fail()` if the two
+arguments aren't equal using `===`, and otherwise `Succeed()`.
+
+The next assertion, all together:
+
+```scala
+test("say 2 * 2 == 4") { () =>
+  assert(2 * 2 == 4)
+}
+```
+
 
 And we're done.

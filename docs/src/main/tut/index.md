@@ -23,22 +23,21 @@ For the most basic building blocks of testz:
 libraryDependencies += "org.scalaz" %% "testz-core" % "0.0.4"
 ```
 
-For the most basic, zero-dependency test harnesses:
-(see the [simple example](./docs/01-first-example.md))
+For the most basic, zero-dependency test harnesses
+(see the [simple example](./docs/01-first-example.html)):
 
 ```scala
 libraryDependencies += "org.scalaz" %% "testz-stdlib" % "0.0.4"
 ```
-
-For a way to run testz test suites:
-(see [here](./docs/07-runner.md) for details)
+:
+For a way to run testz test suites
+(see [here](./docs/07-runner.html) for details):
 
 ```scala
 libraryDependencies += "org.scalaz" %% "testz-runner" % "0.0.4"
 ```
 
-For scalaz 7.2 support (see [here](./docs/04-scalaz.md) for information on what that
-constitutes):
+For scalaz 7.2 support (see [here](./docs/04-scalaz.html) for information on what that constitutes):
 
 ```scala
 libraryDependencies += "org.scalaz" %% "testz-scalaz" % "0.0.4"
