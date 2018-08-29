@@ -58,9 +58,8 @@ object z {
     F.tailrecM[(fold.S, unfold.S), B]({ case (fs, us) => go(fs, us) })((fold.start, unfold.start))
   }
 
-  implicit val equalResult: Equal[Result] = Equal.equal {
-    (f, s) => f eq s
-  }
+  implicit val equalResult: Equal[Result] =
+    Equal.equal(_ eq _)
 
   implicit val monoidResult: Monoid[Result] = new Monoid[Result] {
     def zero: Result = Succeed()
