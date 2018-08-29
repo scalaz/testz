@@ -33,6 +33,7 @@ package testz
 import extras._
 
 object ExtrasSuite {
+  @inline
   def tests[T](harness: Harness[T]): T = {
     import harness._
     section("document harness")(

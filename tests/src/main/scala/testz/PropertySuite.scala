@@ -41,6 +41,7 @@ object PropertySuite {
       Unfold((0 to 5).map(k => (i, k :: n)): _*)
   }
 
+  @inline
   def tests[T](harness: Harness[T]): T = {
     import harness._
     section("int ranges")(

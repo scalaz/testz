@@ -25,6 +25,7 @@ val sonataCredentials = for {
 credentials in ThisBuild ++= sonataCredentials.toSeq
 
 val standardSettings = Seq(
+  scalaVersion := "2.12.6",
   logBuffered in Compile := false,
   logBuffered in Test := false,
   updateOptions := updateOptions.value.withCachedResolution(true),
@@ -78,7 +79,10 @@ val standardSettings = Seq(
     "-Ywarn-unused:params",              // Warn if a value parameter is unused.
     "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
     "-Ywarn-unused:privates",            // Warn if a private member is unused.
-    "-Ywarn-value-discard"               // Warn when non-Unit expression results are unused.
+    "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
+    "-opt-warnings:_",                   // Warn if a method marked @inline cannot be inlined
+    "-opt:l:inline",                     // Enable the optimizer
+    "-opt-inline-from:<sources>",
   ),
   scalacOptions in (Compile, doc) ++= Seq("-groups", "-implicits"),
   wartremoverWarnings in (Compile, compile) --= Seq(

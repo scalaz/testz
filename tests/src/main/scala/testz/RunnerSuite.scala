@@ -35,6 +35,7 @@ import runner.TestOutput
 import scala.concurrent.{ExecutionContext, Future}
 
 object RunnerSuite {
+  @inline
   def tests[T](harness: EffectHarness[Future, T], ec: ExecutionContext): T = {
     import harness._
     section("timing")(
