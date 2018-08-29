@@ -53,7 +53,9 @@ abstract class EffectHarness[F[_], T] {
 }
 
 object EffectHarness {
-  def toHarness[F[_], T](self: EffectHarness[F, T])(pure: Result => F[Result]): Harness[T] = new Harness[T] {
+  def toHarness[F[_], T]
+    (self: EffectHarness[F, T])
+    (pure: Result => F[Result]): Harness[T] = new Harness[T] {
     def test
       (name: String)
       (assertions: () => Result)

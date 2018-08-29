@@ -67,4 +67,19 @@ object EffectResourceHarness {
       : T[R] =
         self.section(name)(test1, tests: _*)
   }
+
+  // I'd make this take EffectResourceHarness[F, T],
+  // but I don't have NaturalTransformation.
+  def toResourceHarness[T[_]](
+    self: EffectResourceHarness[λ[X => X], T]
+  ): ResourceHarness[T] = new ResourceHarness[T] {
+    def test[R](name: String)(assertions: R => Result): T[R] =
+      self.test[R](name)(r => assertions(r))
+    def section[R](name: String)(test1: T[R], tests: T[R]*): T[R] =
+      self.section[R](name)(test1, tests: _*)
+    def allocate[R, I]
+      (init: () => I)
+      (tests: T[(I, R)]): T[R] =
+      self.bracket(init)(_ => ())(tests)
+    }
 }

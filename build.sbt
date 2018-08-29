@@ -195,7 +195,7 @@ val specs2JVM = specs2.jvm
 val specs2JS = specs2.js
 
 val extras = crossProject(JSPlatform, JVMPlatform).in(file("extras"))
-  .dependsOn(core)
+  .dependsOn(core, resource)
   .settings(name := "testz-extras")
   .settings(standardSettings ++ publishSettings)
   .enablePlugins(AutomateHeaderPlugin)

@@ -37,7 +37,7 @@ object ExtrasSuite {
     import harness._
     section("document harness")(
       test("entire harness") { () =>
-        val docHarness = new DocHarness
+        val docHarness = DocHarness.make
         val buf = new scala.collection.mutable.ListBuffer[String]()
         import docHarness.{section => docSection, test => docTest}
         docSection("outer section")(
