@@ -92,6 +92,15 @@ object FutureHarness {
 
   type Uses[R] = (R, List[String]) => Future[TestOutput]
 
+  def combineUses[R](ec: ExecutionContext)(fst: Uses[R], snd: Uses[R]): Uses[R] =
+    (r, ls) =>
+      futureUtil.map(fst(r, ls))(fstOutput =>
+        futureUtil.map(snd(r, ls))(sndOutput =>
+          TestOutput.combine(fstOutput, sndOutput)
+        )(ec)
+      )(ec).flatten
+
+
   def makeFromPrinterEff(
     output: (List[String], Result) => Unit
   )(
