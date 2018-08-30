@@ -25,6 +25,7 @@ val sonataCredentials = for {
 credentials in ThisBuild ++= sonataCredentials.toSeq
 
 val standardSettings = Seq(
+  scalaVersion := "2.12.4",
   logBuffered in Compile := false,
   logBuffered in Test := false,
   updateOptions := updateOptions.value.withCachedResolution(true),
