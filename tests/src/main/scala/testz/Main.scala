@@ -55,9 +55,11 @@ object Main {
       FutureHarness.makeFromPrinterEff(printer)(global)
 
     def unitTests = TestOutput.combineAll1(
-      ExtrasSuite.tests(harness).apply((), List("Extras tests")),
-      PropertySuite.tests(harness).apply((), List("Property tests")),
-      StdlibSuite.tests(harness).apply((), List("Stdlib tests")),
+      ExtrasSuite.tests(harness)((), List("Extras tests")),
+      PropertySuite.tests(harness)((), List("Property tests")),
+      StdlibSuite.tests(harness)((), List("Stdlib tests")),
+      CoreSuite.tests(harness)((), List("Core tests")),
+      ScalazSuite.tests(harness)((), List("Scalaz tests")),
     )
 
     def propertyTests = {
