@@ -31,8 +31,7 @@
 package testz
 
 object StdlibSuite {
-  @inline
-  def tests[T](harness: Harness[T]): T = {
+  final def tests[T](harness: Harness[T]): T = {
     import harness._
     section("assert")(
       test("success") { () =>

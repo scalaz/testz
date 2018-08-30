@@ -46,7 +46,7 @@ object runner {
   object TestOutput {
     // The `mappend` operation for the `Monoid` of `TestOutput`s.
     // If either fails, the result fails.
-    @inline def combine(fst: TestOutput, snd: TestOutput) =
+    def combine(fst: TestOutput, snd: TestOutput) =
       new TestOutput(
         fst.failed || snd.failed,
         { () => fst.print(); snd.print() }
@@ -54,7 +54,7 @@ object runner {
 
     // Combines 1 or more `TestOutput`s, using logarithmic stack depth in the number of
     // tests unlike `combine` which would be linear.
-    @inline def combineAll1(output1: TestOutput, outputs: TestOutput*) = {
+    def combineAll1(output1: TestOutput, outputs: TestOutput*) = {
       val anyFailed = output1.failed || outputs.exists(_.failed)
       new TestOutput(
         anyFailed,

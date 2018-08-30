@@ -90,14 +90,14 @@ object FutureHarness {
 
   type Uses[R] = (R, List[String]) => Future[TestOutput]
 
-  @inline def makeFromPrinterEff(
+  def makeFromPrinterEff(
     output: (List[String], Result) => Unit
   )(
     ec: ExecutionContext
   ): EffectHarness[Future, Uses[Unit]] =
     EffectResourceHarness.toEffectHarness(makeFromPrinterEffR(output)(ec))
 
-  @inline def makeFromPrinterEffR(
+  def makeFromPrinterEffR(
     outputTest: (List[String], Result) => Unit,
   )(
     ec: ExecutionContext

@@ -30,34 +30,6 @@
 
 package testz
 
-import extras._
-
-object ExtrasSuite {
-  final def tests[T](harness: Harness[T]): T = {
-    import harness._
-    section("document harness")(
-      test("entire harness") { () =>
-        val docHarness = DocHarness.make
-        val buf = new scala.collection.mutable.ListBuffer[String]()
-        import docHarness.{section => dSection, test => dTest}
-        val success = () => Succeed()
-        dSection("outer section")(
-          dSection("first inner section")(
-            dTest("first test inside of first inner section")(success),
-            dTest("second test inside of first inner section")(success)
-          ),
-          dSection("second inner section")(
-            dTest("first test inside of second inner section")(success),
-          )
-        )("  ", buf)
-        assert(buf.result() == List(
-          "    [outer section]",
-          "      [first inner section]",
-          "        first test inside of first inner section",
-          "        second test inside of first inner section",
-          "      [second inner section]",
-          "        first test inside of second inner section"))
-      }
-    )
-  }
+object ScalazSuite {
+  final def tests[T](harness: Harness[T]): T = ???
 }

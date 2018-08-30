@@ -54,16 +54,17 @@ object Main {
     val futureHarness =
       FutureHarness.makeFromPrinterEff(printer)(global)
 
-    @inline def unitTests = TestOutput.combineAll1(
-      ExtrasSuite.tests(harness)((), List("Extras tests")),
-      PropertySuite.tests(harness)((), List("Property tests")),
-      StdlibSuite.tests(harness)((), List("Stdlib tests")),
+    def unitTests = TestOutput.combineAll1(
+      ExtrasSuite.tests(harness).apply((), List("Extras tests")),
+      PropertySuite.tests(harness).apply((), List("Property tests")),
+      StdlibSuite.tests(harness).apply((), List("Stdlib tests")),
     )
 
-    @inline def propertyTests =
+    def propertyTests = {
       PropertySuite.tests(harness)((), List("Property tests"))
+    }
 
-    @inline def runnerTests =
+    def runnerTests =
       RunnerSuite.tests(futureHarness, ec)((), List("Runner tests"))
 
     // Evaluate tests before the runner expects,

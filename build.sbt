@@ -80,9 +80,10 @@ val standardSettings = Seq(
     "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
     "-Ywarn-unused:privates",            // Warn if a private member is unused.
     "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
-    "-opt-warnings:_",                   // Warn if a method marked @inline cannot be inlined
+    "-opt-warnings:_",                   // Warn if a method call marked @inline cannot be inlined
     "-opt:l:inline",                     // Enable the optimizer
     "-opt-inline-from:<sources>",
+    "-Yopt-inline-heuristics:at-inline-annotated",
   ),
   scalacOptions in (Compile, doc) ++= Seq("-groups", "-implicits"),
   wartremoverWarnings in (Compile, compile) --= Seq(
