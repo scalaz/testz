@@ -34,7 +34,7 @@ import z._
 import scalaz._, Scalaz._
 
 object ScalazSuite {
-  final def tests[T](harness: Harness[T]): T = {
+  def tests[T](harness: Harness[T]): T = {
     import harness._
 
     // every possible `Result` value

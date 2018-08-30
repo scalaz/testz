@@ -33,7 +33,7 @@ package testz
 import extras._
 
 object ExtrasSuite {
-  final def tests[T](harness: Harness[T]): T = {
+  def tests[T](harness: Harness[T]): T = {
     import harness._
     section("document harness")(
       test("entire harness") { () =>
