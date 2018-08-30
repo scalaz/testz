@@ -54,6 +54,14 @@ object Main {
     val futureHarness =
       FutureHarness.makeFromPrinterEff(printer)(global)
 
+    val combineUses: (FutureHarness.Uses[Unit], FutureHarness.Uses[Unit]) => FutureHarness.Uses[Unit] =
+      (f, s) => (r, ls) =>
+        futureUtil.map(f(r, ls))(fr =>
+          futureUtil.map(s(r, ls))(sr =>
+            TestOutput.combine(fr, sr)
+          )(ec)
+        )(ec).flatten
+
     def unitTests = TestOutput.combineAll1(
       ExtrasSuite.tests(harness)((), List("Extras tests")),
       PropertySuite.tests(harness)((), List("Property tests")),
@@ -67,7 +75,7 @@ object Main {
     }
 
     def runnerTests =
-      RunnerSuite.tests(futureHarness, ec)((), List("Runner tests"))
+      RunnerSuite.tests(futureHarness, ec, combineUses)((), List("Runner tests"))
 
     // Evaluate tests before the runner expects,
     // for parallelism.
