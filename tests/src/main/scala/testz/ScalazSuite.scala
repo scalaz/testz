@@ -43,16 +43,12 @@ object ScalazSuite {
     section("instances")(
       section("result monoid")(
         test("mappend equivalent to Result.combine") { () =>
-          (allResults |@| allResults).tupled.foldLeft(Succeed()) {
-            case (r, (i1, i2)) =>
-              if (r == Fail()) {
-                r
-              } else {
-                assert(
-                  Result.combine(i1, i2) == (i1 |+| i2)
-                )
-              }
-          }
+          (allResults |@| allResults).tupled.map {
+            case (i1, i2) =>
+              assert(
+                Result.combine(i1, i2) == (i1 |+| i2)
+              )
+          }.reduce(Result.combine)
         },
         test("mempty is Succeed()") { () =>
           assert(Monoid[Result].zero == Succeed())
