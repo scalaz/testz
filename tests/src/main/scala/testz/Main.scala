@@ -43,7 +43,7 @@ object Main {
     // `runner.printStrs` with `Console.print`
     // for printing.
     val printer: (Result, List[String]) => Unit =
-      (tr, ls) => runner.printStrs(runner.printTest(ls, tr), Console.print)
+      (tr, ls) => runner.printStrs(runner.printTest(tr, ls), Console.print)
 
     // Not always a good choice; parallelism slows down heavily contended machines, for example.
     val ec = global
