@@ -42,10 +42,10 @@ object Main {
     // use `runner.printTest` for formatting and
     // `runner.printStrs` with `Console.print`
     // for printing.
-    val printer: (List[String], Result) => Unit =
-      (ls, tr) => runner.printStrs(runner.printTest(ls, tr), Console.print)
+    val printer: (Result, List[String]) => Unit =
+      (tr, ls) => runner.printStrs(runner.printTest(ls, tr), Console.print)
 
-    // Not always a good choice; parallelism slows down some VMs, for example.
+    // Not always a good choice; parallelism slows down heavily contended machines, for example.
     val ec = global
 
     val harness =
@@ -58,7 +58,7 @@ object Main {
       ExtrasSuite.tests(harness)((), List("Extras tests")),
       PropertySuite.tests(harness)((), List("Property tests")),
       StdlibSuite.tests(harness)((), List("Stdlib tests")),
-      CoreSuite.tests(harness)((), List("Core tests")),
+      CoreSuite.tests(harness, PureHarness.combineUses[Unit])((), List("Core tests")),
       ScalazSuite.tests(harness)((), List("Scalaz tests")),
     )
 

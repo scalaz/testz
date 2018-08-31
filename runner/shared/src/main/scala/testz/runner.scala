@@ -139,7 +139,7 @@ object runner {
 
   // Note that tests which succeed never have results printed
   // (if you use this function)
-  def printTest(scope: List[String], out: Result): List[String] = out match {
+  def printTest(out: Result, scope: List[String]): List[String] = out match {
     case _: Succeed => Nil
     case _          => intersperse(new ::("failed\n", scope), "->")
   }

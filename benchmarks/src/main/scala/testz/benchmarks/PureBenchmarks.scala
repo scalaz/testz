@@ -100,7 +100,7 @@ class BulkPureBenchmarks {
         (Console.print(_), () => ())
 
     val harness = PureHarness.makeFromPrinter(
-      (ls, res) => runner.printStrs(runner.printTest(ls, res), print)
+      (res, ls) => runner.printStrs(runner.printTest(res, ls), print)
     )
 
     val suites: List[() => Future[TestOutput]] =
@@ -125,7 +125,7 @@ class BulkPureBenchmarks {
         (Console.print(_), () => ())
 
     val harness = PureHarness.makeFromPrinter(
-      (ls, res) => runner.printStrs(runner.printTest(ls, res), print)
+      (res, ls) => runner.printStrs(runner.printTest(res, ls), print)
     )
 
     val suites: List[() => Future[TestOutput]] =

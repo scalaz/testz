@@ -45,12 +45,12 @@ object PureHarness {
     (r, ls) => { TestOutput.combineAll1(fst(r, ls), rest.map(_(r, ls)): _*) }
 
   def makeFromPrinter(
-    output: (List[String], Result) => Unit
+    output: (Result, List[String]) => Unit
   ): Harness[Uses[Unit]] =
     ResourceHarness.toHarness(makeFromPrinterR(output))
 
   def makeFromPrinterR(
-    output: (List[String], Result) => Unit
+    output: (Result, List[String]) => Unit
   ): ResourceHarness[Uses] =
     new ResourceHarness[Uses] {
       override def test[R]
@@ -60,11 +60,11 @@ object PureHarness {
         // note that `assertions(r)` is *already computed* before the
         // `() => Unit` is run; this is important to separate phases between
         // printing and running tests.
-        { (r, scope) =>
-          val result = assertions(r)
+        { (resource, scope) =>
+          val result = assertions(resource)
           new TestOutput(
             result ne Succeed(),
-            () => output(name :: scope, result)
+            () => output(result, name :: scope)
           )
         }
 
@@ -102,14 +102,14 @@ object FutureHarness {
 
 
   def makeFromPrinterEff(
-    output: (List[String], Result) => Unit
+    output: (Result, List[String]) => Unit
   )(
     ec: ExecutionContext
   ): EffectHarness[Future, Uses[Unit]] =
     EffectResourceHarness.toEffectHarness(makeFromPrinterEffR(output)(ec))
 
   def makeFromPrinterEffR(
-    outputTest: (List[String], Result) => Unit,
+    outputTest: (Result, List[String]) => Unit,
   )(
     ec: ExecutionContext
   ): EffectResourceHarness[Future, Uses] =
@@ -117,8 +117,8 @@ object FutureHarness {
       // note that `assertions(r)` is *already computed* before we run
       // the `() => Unit`.
       def test[R](name: String)(assertions: R => Future[Result]): Uses[R] =
-        (r, sc) => assertions(r).map { es =>
-          new TestOutput(es ne Succeed(), () => outputTest(name :: sc, es))
+        (r, sc) => assertions(r).map { result =>
+          new TestOutput(result ne Succeed(), () => outputTest(result, name :: sc))
         }(ec)
 
       def section[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {

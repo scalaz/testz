@@ -45,7 +45,7 @@ which is `(Unit, List[String]) => TestOutput`.
 
 ```tut:book
 val harness: Harness[PureHarness.Uses[Unit]] =
-  PureHarness.makeFromPrinter((name, result) =>
+  PureHarness.makeFromPrinter((result, name) =>
     println(s"${name.reverse.mkString("[\"", "\"->\"", "\"]:")} $result")
   )
 (new MathTests()).tests(harness)((), Nil).print()

@@ -31,49 +31,61 @@
 package testz
 
 object CoreSuite {
-  def tests[T](harness: Harness[T]): T = {
+  def tests[T](harness: Harness[T], combineUses: (T, T) => T): T = {
     import harness._
-    section("result methods")(
-      test("Result.combine") { () =>
-        val data = List(
-          (Succeed(), Succeed(), Succeed()),
-          (Succeed(), Fail(), Fail()),
-          (Fail(), Succeed(), Fail()),
-          (Fail(), Fail(), Fail()),
-        )
-        data.foldLeft(Succeed()) {
-          case (r, (i1, i2, o)) =>
-            if (r == Fail())
-              r
-            else
-              assert(Result.combine(i1, i2) == o)
+    combineUses(
+      section("assert")(
+        test("success") { () =>
+          if (assert(true) eq Succeed()) Succeed()
+          else Fail()
+        },
+        test("failure") { () =>
+          if (assert(false) eq Fail()) Succeed()
+          else Fail()
         }
-      },
-      section("Result#equals")(
-        test("agrees with eq") { () =>
+      ),
+      section("result methods")(
+        test("Result.combine") { () =>
           val data = List(
-            (Succeed(), Succeed()),
-            (Succeed(), Fail()),
-            (Fail(), Succeed()),
-            (Fail(), Fail()),
+            (Succeed(), Succeed(), Succeed()),
+            (Succeed(), Fail(), Fail()),
+            (Fail(), Succeed(), Fail()),
+            (Fail(), Fail(), Fail()),
           )
-          data.map {
-            case (i1, i2) =>
-              assert((i1 eq i2) == (i1 == i2))
-          }.reduce(Result.combine)
+          data.foldLeft(Succeed()) {
+            case (r, (i1, i2, o)) =>
+              if (r == Fail())
+                r
+              else
+                assert(Result.combine(i1, i2) == o)
+          }
         },
-        test("exhaustive") { () =>
-          val data = List(
-            (Succeed(), Succeed(), true),
-            (Succeed(), Fail(), false),
-            (Fail(), Succeed(), false),
-            (Fail(), Fail(), true),
-          )
-          data.map {
-            case (i1, i2, o) =>
-              assert((i1 == i2) == o)
-          }.reduce(Result.combine)
-        },
+        section("Result#equals")(
+          test("agrees with eq") { () =>
+            val data = List(
+              (Succeed(), Succeed()),
+              (Succeed(), Fail()),
+              (Fail(), Succeed()),
+              (Fail(), Fail()),
+            )
+            data.map {
+              case (i1, i2) =>
+                assert((i1 eq i2) == (i1 == i2))
+            }.reduce(Result.combine)
+          },
+          test("exhaustive") { () =>
+            val data = List(
+              (Succeed(), Succeed(), true),
+              (Succeed(), Fail(), false),
+              (Fail(), Succeed(), false),
+              (Fail(), Fail(), true),
+            )
+            data.map {
+              case (i1, i2, o) =>
+                assert((i1 == i2) == o)
+            }.reduce(Result.combine)
+          },
+        )
       )
     )
   }
