@@ -67,37 +67,6 @@ and `Future.sequence(it.toList).map(_.exists(b => b))`:
   }
 ```
 
-Differences between `consumeIterator(it)`
-and `Future.sequence(it.toList).map(_ => ())`:
-
-  - `consumeIterator` won't call `next()` until the current `Future[A]` has
-    already returned: any effects in the iterator are executed in sequence,
-    not in parallel.
-  - any runs of synchronous `Future`s are traversed without thread pool
-    submissions,
-  - there is no list allocated.
-
-```tut:silent
-def consumeIterator[A](it: Iterator[Future[A]])(ec: ExecutionContext): Future[Unit] = {
-  // synchronous inner loop has to be tail-recursive to be stack-safe.
-  @scala.annotation.tailrec
-  def inner(): Future[Unit] = {
-    if (it.hasNext) {
-      val ne = it.next
-      if (ne.isCompleted) {
-        inner()
-      } else {
-        ne.flatMap(_ => consumeIterator(it)(ec))(ec)
-      }
-    } else {
-      Future.unit
-    }
-  }
-
-    inner()
-  }
-```
-
 Differences between `collectIterator(it)`
 and `Future.sequence(it.toList)`:
 

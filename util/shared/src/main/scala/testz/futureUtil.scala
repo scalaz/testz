@@ -55,25 +55,6 @@ object futureUtil {
     outer(false)
   }
 
-  def consumeIterator[A](it: Iterator[Future[A]])(ec: ExecutionContext): Future[Unit] = {
-    // synchronous inner loop has to be tail-recursive to be stack-safe.
-    @scala.annotation.tailrec
-    def inner(): Future[Unit] = {
-      if (it.hasNext) {
-        val ne = it.next
-        if (ne.isCompleted) {
-          inner()
-        } else {
-          ne.flatMap(_ => consumeIterator(it)(ec))(ec)
-        }
-      } else {
-        Future.unit
-      }
-    }
-
-    inner()
-  }
-
   def collectIterator[A](it: Iterator[Future[A]])(ec: ExecutionContext): Future[List[A]] = {
     def outer(acc: List[A]): Future[List[A]] = {
       // synchronous inner loop has to be tail-recursive to be stack-safe.
