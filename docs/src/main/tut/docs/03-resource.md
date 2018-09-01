@@ -13,7 +13,8 @@ These come in the form of a couple of harness types; firstly, `ResourceHarness`.
 ```scala
 abstract class ResourceHarness[T[_]] { self =>
   def test[R](name: String)(assertions: R => Result): T[R]
-  def section[R](name: String)(test1: T[R], tests: T[R]*): T[R]
+  def namedSection[R](name: String)(test1: T[R], tests: T[R]*): T[R]
+  def section[R](test1: T[R], tests: T[R]*): T[R]
   def allocate[R, I]
     (init: () => I)
     (tests: T[(I, R)]): T[R]
@@ -47,7 +48,7 @@ import testz._
 object TestsWithResources {
   def tests[T[_]](harness: ResourceHarness[T]): T[Unit] = {
     import harness._
-    section("all the tests")(
+    section(
       allocate(() => List(1, 2, 3, 4))(
         test("the list should be ascending") {
           case (list, _) =>
@@ -78,8 +79,12 @@ trait EffectResourceHarness[F[_], T[_]] { self =>
     (name: String)
     (assertions: R => F[Result]): T[R]
 
-  def section[R]
+  def namedSection[R]
     (name: String)
+    (test1: T[R], tests: T[R]*
+  ): T[R]
+
+  def section[R]
     (test1: T[R], tests: T[R]*
   ): T[R]
 
