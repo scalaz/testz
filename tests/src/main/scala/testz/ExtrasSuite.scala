@@ -35,27 +35,29 @@ import extras._
 object ExtrasSuite {
   def tests[T](harness: Harness[T]): T = {
     import harness._
-    section("document harness")(
+    namedSection("document harness")(
       test("entire harness") { () =>
         val docHarness = DocHarness.make
         val buf = new scala.collection.mutable.ListBuffer[String]()
-        import docHarness.{section => dSection, test => dTest}
-        dSection("outer section")(
-          dSection("first inner section")(
-            dTest("first test inside of first inner section")(() => ???),
-            dTest("second test inside of first inner section")(() => ???)
+        import docHarness.{namedSection => dNamedSection, section => dSection, test => dTest}
+        dNamedSection("outer named section")(
+          dNamedSection("first inner named section")(
+            dTest("first test inside of first inner named section")(() => ???),
+            dTest("second test inside of first inner named section")(() => ???)
           ),
-          dSection("second inner section")(
+          dNamedSection("second inner named section")(
             dTest("first test inside of second inner section")(() => ???),
+            dSection(dTest("first test inside of section inside second inner named section")(() => ???)),
           )
         )("  ", buf)
         assert(buf.result() == List(
-          "    [outer section]",
-          "      [first inner section]",
-          "        first test inside of first inner section",
-          "        second test inside of first inner section",
-          "      [second inner section]",
-          "        first test inside of second inner section"))
+          "    [outer named section]",
+          "      [first inner named section]",
+          "        first test inside of first inner named section",
+          "        second test inside of first inner named section",
+          "      [second inner named section]",
+          "        first test inside of second inner section",
+          "          first test inside of section inside second inner named section"))
       }
     )
   }

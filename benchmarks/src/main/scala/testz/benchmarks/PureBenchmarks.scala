@@ -68,7 +68,7 @@ class BulkPureBenchmarks {
     def tests[T](harness: Harness[T]): T = {
       import harness._
 
-      section("long, long section name")(
+      namedSection("long, long section name")(
         test("test number 0")(() => Fail()),
         List.tabulate(perSuite - 1)(n =>
           test("test number " + (n + 1))(() => Fail())
@@ -81,7 +81,7 @@ class BulkPureBenchmarks {
     def tests[T](harness: Harness[T]): T = {
       import harness._
 
-      section("long, long section name")(
+      namedSection("long, long section name")(
         test("test number 0")(() => Succeed()),
         List.tabulate(perSuite - 1)(n =>
           test("test number " + (n + 1))(() => Succeed())

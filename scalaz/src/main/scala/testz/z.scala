@@ -86,11 +86,18 @@ object z {
             () => printer(sc, Fail())
         }
 
-      def section[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
+      def namedSection[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
         (r, sc) =>
           val newScope = name :: sc
           test1(r, newScope).flatMap(_ =>
             tests.toList.traverse(_(r, newScope))
+          ).map(ls => () => ls.foreach(_()))
+      }
+
+      def section[R](test1: Uses[R], tests: Uses[R]*): Uses[R] = {
+        (r, sc) =>
+          test1(r, sc).flatMap(_ =>
+            tests.toList.traverse(_(r, sc))
           ).map(ls => () => ls.foreach(_()))
       }
 

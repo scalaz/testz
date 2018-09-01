@@ -40,7 +40,9 @@ package testz
 abstract class Harness[T] {
   def test(name: String)(assertions: () => Result): T
 
-  def section(name: String)(test1: T, tests: T*): T
+  def namedSection(name: String)(test1: T, tests: T*): T
+
+  def section(test1: T, tests: T*): T
 }
 
 /**
@@ -49,7 +51,9 @@ abstract class Harness[T] {
 abstract class EffectHarness[F[_], T] {
   def test(name: String)(assertions: () => F[Result]): T
 
-  def section(name: String)(test1: T, tests: T*): T
+  def namedSection(name: String)(test1: T, tests: T*): T
+
+  def section(test1: T, tests: T*): T
 }
 
 object EffectHarness {
@@ -61,11 +65,16 @@ object EffectHarness {
       (assertions: () => Result)
       : T = self.test(name)(() => pure(assertions()))
 
-    def section
+    def namedSection
       (name: String)
       (test1: T, tests: T*)
-      : T = self.section(name)(test1, tests: _*)
+      : T = self.namedSection(name)(test1, tests: _*)
+
+    def section
+      (test1: T, tests: T*)
+      : T = self.section(test1, tests: _*)
     }
+
 }
 
 /**

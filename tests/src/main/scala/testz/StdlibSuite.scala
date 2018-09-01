@@ -33,41 +33,14 @@ package testz
 import runner.TestOutput
 
 object StdlibSuite {
+
   def tests[T](harness: Harness[T]): T = {
     import harness._
 
-    section("PureHarness")(
-      test("combineUses") { () =>
-        def test(failed1: Boolean, failed2: Boolean, expected: Boolean): Result = {
-          var x = ""
-          var y = ""
-          def effX(r: List[Int], ls: List[String]): TestOutput =
-            new TestOutput(
-              failed1,
-              () => x += ls.mkString("[", ", ", "]: ") + r.mkString("(", "; ", ")")
-            )
-          def effY(r: List[Int], ls: List[String]): TestOutput =
-            new TestOutput(
-              failed2,
-              () => y += ls.mkString("[", ", ", "]: ") + r.mkString("(", "; ", ")")
-            )
-          val combined = PureHarness.combineUses[List[Int]](effX, effY)(List(1, 2), List("b", "a"))
-          combined.print()
-          assert(
-            (combined.failed == expected) &&
-            (x == "[b, a]: (1; 2)") &&
-            (y == "[b, a]: (1; 2)")
-          )
-        }
-        List(
-          test(false, false, false),
-          test(true, true, true),
-          test(true, false, true),
-          test(false, true, true)
-        ).reduce(Result.combine)
+    val noOpHarness = PureHarness.makeFromPrinterR((_, _) => ())
 
-      },
-      test("combineAllUses") { () =>
+    namedSection("PureHarness")(
+      test("section") { () =>
         def test(faileds: List[Boolean], expected: Boolean): Result = {
           val arr = Array.fill(faileds.length)("")
           def setter(r: List[Int], ls: List[String], i: Int): () => Unit =
@@ -76,7 +49,7 @@ object StdlibSuite {
             case (f, i) => (r: List[Int], ls: List[String]) => new TestOutput(f, setter(r, ls, i))
           }
           val combined =
-            PureHarness.combineAllUses1[List[Int]](outputs.head, outputs.tail: _*)(List(1, 2), List("hey", "there"))
+            noOpHarness.section[List[Int]](outputs.head, outputs.tail: _*)(List(1, 2), List("hey", "there"))
           combined.print()
           assert(
             (combined.failed == expected) &&
@@ -95,18 +68,21 @@ object StdlibSuite {
           test(List(false, true, true, true, true), true)
         ).reduce(Result.combine)
       },
-      test("section") { () =>
-        val harness = PureHarness.makeFromPrinterR((_, _) => ())
+      test("namedSection") { () =>
         var x = ""
-        val test: PureHarness.Uses[List[Int]] =
+        var y = ""
+        val testX: PureHarness.Uses[List[Int]] =
           (r, ls) => new TestOutput(false, () => x = s"$x - $ls - $r")
+        val testY: PureHarness.Uses[List[Int]] =
+          (r, ls) => new TestOutput(false, () => y = s"$y - $ls - $r")
         val sec =
-          harness.section("section name")(test)
+          noOpHarness.namedSection("section name")(testX, testY)
         val result = sec(List(1, 2, 3), List("outer"))
         result.print()
         assert(
           (result.failed == false) &&
-          x == s""" - List(section name, outer) - List(1, 2, 3)"""
+          x == s""" - List(section name, outer) - List(1, 2, 3)""" &&
+          y == s""" - List(section name, outer) - List(1, 2, 3)"""
         )
       },
       test("test") { () =>

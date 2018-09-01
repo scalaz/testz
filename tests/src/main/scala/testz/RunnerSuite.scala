@@ -35,10 +35,10 @@ import runner.TestOutput
 import scala.concurrent.{ExecutionContext, Future}
 
 object RunnerSuite {
-  def tests[T](harness: EffectHarness[Future, T], ec: ExecutionContext, combineUses: (T, T) => T): T = {
+  def tests[T](harness: EffectHarness[Future, T], ec: ExecutionContext): T = {
     import harness._
-    combineUses(
-      section("timing")(
+    section(
+      namedSection("timing")(
         test(
           "all tests should be run once and their results printed immediately, and in order"
         ) { () =>
@@ -100,7 +100,7 @@ object RunnerSuite {
           }(ec)
         },
       ),
-      section("TestOutput")(
+      namedSection("TestOutput")(
         test("combine") { () =>
           def test(failed1: Boolean, failed2: Boolean, failedExpected: Boolean): Result = {
             var x = ""

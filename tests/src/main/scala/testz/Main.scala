@@ -58,7 +58,7 @@ object Main {
       ExtrasSuite.tests(harness)((), List("Extras tests")),
       PropertySuite.tests(harness)((), List("Property tests")),
       StdlibSuite.tests(harness)((), List("Stdlib tests")),
-      CoreSuite.tests(harness, PureHarness.combineUses[Unit])((), List("Core tests")),
+      CoreSuite.tests(harness)((), List("Core tests")),
       ScalazSuite.tests(harness)((), List("Scalaz tests")),
     )
 
@@ -66,10 +66,8 @@ object Main {
       PropertySuite.tests(harness)((), List("Property tests"))
     }
 
-    val combineUses = FutureHarness.combineUses[Unit](ec) _
-
     def runnerTests =
-      RunnerSuite.tests(futureHarness, ec, combineUses)((), List("Runner tests"))
+      RunnerSuite.tests(futureHarness, ec)((), List("Runner tests"))
 
     // Evaluate tests before the runner expects,
     // for parallelism.

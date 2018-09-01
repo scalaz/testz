@@ -4,7 +4,8 @@ package testz
 // some kind of resource `R`, and they have no effects.
 abstract class ResourceHarness[T[_]] { self =>
   def test[R](name: String)(assertions: R => Result): T[R]
-  def section[R](name: String)(test1: T[R], tests: T[R]*): T[R]
+  def namedSection[R](name: String)(test1: T[R], tests: T[R]*): T[R]
+  def section[R](test1: T[R], tests: T[R]*): T[R]
   def allocate[R, I]
     (init: () => I)
     (tests: T[(I, R)]): T[R]
@@ -22,11 +23,16 @@ object ResourceHarness {
         : T[R] =
           self.test[R](name)(_ => assertions())
 
-      def section
+      def namedSection
         (name: String)
         (test1: T[R], tests: T[R]*)
         : T[R] =
-          self.section(name)(test1, tests: _*)
+          self.namedSection(name)(test1, tests: _*)
+
+      def section
+        (test1: T[R], tests: T[R]*)
+        : T[R] =
+          self.section(test1, tests: _*)
     }
 }
 
@@ -39,8 +45,9 @@ trait EffectResourceHarness[F[_], T[_]] { self =>
     (name: String)
     (assertions: R => F[Result]): T[R]
 
+  def namedSection[R](name: String)(test1: T[R], tests: T[R]*): T[R]
+
   def section[R]
-    (name: String)
     (test1: T[R], tests: T[R]*
   ): T[R]
 
@@ -61,11 +68,16 @@ object EffectResourceHarness {
       : T[R] =
         self.test[R](name)(_ => assertions())
 
-    def section
+    def namedSection
       (name: String)
       (test1: T[R], tests: T[R]*)
       : T[R] =
-        self.section(name)(test1, tests: _*)
+        self.namedSection(name)(test1, tests: _*)
+
+    def section
+      (test1: T[R], tests: T[R]*)
+      : T[R] =
+        self.section(test1, tests: _*)
   }
 
   // I'd make this take EffectResourceHarness[F, T],
@@ -75,8 +87,10 @@ object EffectResourceHarness {
   ): ResourceHarness[T] = new ResourceHarness[T] {
     def test[R](name: String)(assertions: R => Result): T[R] =
       self.test[R](name)(r => assertions(r))
-    def section[R](name: String)(test1: T[R], tests: T[R]*): T[R] =
-      self.section[R](name)(test1, tests: _*)
+    def namedSection[R](name: String)(test1: T[R], tests: T[R]*): T[R] =
+      self.namedSection[R](name)(test1, tests: _*)
+    def section[R](test1: T[R], tests: T[R]*): T[R] =
+      self.section[R](test1, tests: _*)
     def allocate[R, I]
       (init: () => I)
       (tests: T[(I, R)]): T[R] =

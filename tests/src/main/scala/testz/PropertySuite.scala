@@ -43,7 +43,7 @@ object PropertySuite {
 
   def tests[T](harness: Harness[T]): T = {
     import harness._
-    section("int ranges")(
+    namedSection("int ranges")(
       test("exhaustiveS") { () =>
         val actualErrors = exhaustiveS[Id, Int](1, 2, 3, 4, 5, 6)(i =>
           assert(i === 3)

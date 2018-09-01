@@ -21,7 +21,7 @@ And here's the meat.
 final class MathTests {
   def tests[T](harness: Harness[T]): T = {
     import harness._
-    section("math must")(
+    section(
       test("say 1 + 1 == 2") { () =>
         assert(1 + 1 == 2)
       },
@@ -111,12 +111,15 @@ we'll use `section` and `test`, the test registration
 primitives in `Harness` which are included in all harness types.
 
 ```scala
-section("math must")(
+section(
 ```
 
 Declaring a test section. Takes varargs parameters, of type `T`.
 Returns a `T`. The only way other than `section` to get a `T`
 (when it's abstract) is `test`.
+
+You can also include a name with the `section` by calling
+`namedSection`, which accepts an additional parameter (`name: String`).
 
 ```scala
 test("say 1 + 1 == 2") { () =>

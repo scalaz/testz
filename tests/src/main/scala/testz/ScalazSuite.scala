@@ -40,8 +40,8 @@ object ScalazSuite {
     // every possible `Result` value
     val allResults = List(Succeed(), Fail())
 
-    section("instances")(
-      section("result monoid")(
+    namedSection("instances")(
+      namedSection("result monoid")(
         test("mappend equivalent to Result.combine") { () =>
           (allResults |@| allResults).tupled.map {
             case (i1, i2) =>
@@ -54,7 +54,7 @@ object ScalazSuite {
           assert(Monoid[Result].zero == Succeed())
         },
       ),
-      section("result equal")(
+      namedSection("result equal")(
         test("should agree with equals") { () =>
           (allResults |@| allResults).tupled.foldMap {
             case (i1, i2) =>

@@ -46,13 +46,25 @@ object DocHarness {
             buf += (indent + "  " + name)
         }
 
-      def section[R](name: String)(
+      def namedSection[R](
+        name: String
+      )(
         test1: Uses[R],
         tests: Uses[R]*
       ): Uses[R] = {
         (indent, buf) =>
           val newIndent = indent + "  "
           buf += (newIndent + "[" + name + "]")
+          test1(newIndent, buf)
+          tests.foreach(_(newIndent, buf))
+      }
+
+      def section[R](
+        test1: Uses[R],
+        tests: Uses[R]*
+      ): Uses[R] = {
+        (indent, buf) =>
+          val newIndent = indent + "  "
           test1(newIndent, buf)
           tests.foreach(_(newIndent, buf))
       }

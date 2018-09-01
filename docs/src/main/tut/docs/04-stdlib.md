@@ -27,12 +27,6 @@ import testz.runner.TestOutput
 object PureHarness {
   type Uses[R] = (R, List[String]) => TestOutput
 
-  def combineUses[R](fst: Uses[R], snd: Uses[R]): Uses[R] =
-    (r, ls) => { TestOutput.combine(fst(r, ls), snd(r, ls)) }
-
-  def combineAllUses1[R](fst: Uses[R], rest: Uses[R]*): Uses[R] =
-    (r, ls) => { TestOutput.combineAll1(fst(r, ls), rest.map(_(r, ls)): _*) }
-
   def makeFromPrinter(
     output: (Result, List[String]) => Unit
   ): Harness[Uses[Unit]] =
@@ -57,7 +51,7 @@ object PureHarness {
           )
         }
 
-      override def section[R]
+      override def namedSection[R]
         (name: String)
         (test1: Uses[R], tests: Uses[R]*
       ): Uses[R] = {
@@ -65,6 +59,15 @@ object PureHarness {
           val newScope = name :: sc
           val outFirst = test1(r, newScope)
           val outRest = tests.map(_(r, newScope))
+          TestOutput.combineAll1(outFirst, outRest: _*)
+      }
+
+      override def section[R]
+        (test1: Uses[R], tests: Uses[R]*
+      ): Uses[R] = {
+        (r, sc) =>
+          val outFirst = test1(r, sc)
+          val outRest = tests.map(_(r, sc))
           TestOutput.combineAll1(outFirst, outRest: _*)
       }
 
@@ -96,15 +99,6 @@ object FutureHarness {
 
   type Uses[R] = (R, List[String]) => Future[TestOutput]
 
-  def combineUses[R](ec: ExecutionContext)(fst: Uses[R], snd: Uses[R]): Uses[R] =
-    (r, ls) =>
-      futureUtil.map(fst(r, ls))(fstOutput =>
-        futureUtil.map(snd(r, ls))(sndOutput =>
-          TestOutput.combine(fstOutput, sndOutput)
-        )(ec)
-      )(ec).flatten
-
-
   def makeFromPrinterEff(
     output: (Result, List[String]) => Unit
   )(
@@ -125,11 +119,20 @@ object FutureHarness {
           new TestOutput(result ne Succeed(), () => outputTest(result, name :: sc))
         }(ec)
 
-      def section[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
+      def namedSection[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
         (r, sc) =>
           val newScope = name :: sc
           test1(r, newScope).flatMap { p1 =>
             futureUtil.collectIterator(tests.iterator.map(_(r, newScope)))(ec).map { ps =>
+              TestOutput.combineAll1(p1, ps: _*)
+            }(ec)
+          }(ec)
+      }
+
+      def section[R](test1: Uses[R], tests: Uses[R]*): Uses[R] = {
+        (r, sc) =>
+          test1(r, sc).flatMap { p1 =>
+            futureUtil.collectIterator(tests.iterator.map(_(r, sc)))(ec).map { ps =>
               TestOutput.combineAll1(p1, ps: _*)
             }(ec)
           }(ec)
@@ -172,4 +175,3 @@ object FutureHarness {
     }
 }
 ```
-

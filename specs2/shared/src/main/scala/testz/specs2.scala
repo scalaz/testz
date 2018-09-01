@@ -51,16 +51,26 @@ object specs2 {
             assertion().map(_ must_== Succeed).await
           }
 
-        def section
+        def namedSection
           (name: String)
           (
             test1: () => Fragment,
             tests: () => Fragment*
-          ): () => Fragment = () =>
+          ): () => Fragment = { () =>
             name should {
               val h = test1()
               tests.map(_()).lastOption.getOrElse(h)
             }
+          }
+
+        def section
+          (
+            test1: () => Fragment,
+            tests: () => Fragment*
+          ): () => Fragment = { () =>
+            val h = test1()
+            tests.map(_()).lastOption.getOrElse(h)
+          }
       }
     }
   }
