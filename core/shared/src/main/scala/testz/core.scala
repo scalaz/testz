@@ -31,6 +31,40 @@
 package testz
 
 /**
+  A type for test results.
+  A two-branch sum, either `Succeed()`, or `Fail()`.
+*/
+sealed abstract class Result
+
+final class Fail private() extends Result {
+  override val toString: String = "Fail"
+  override def equals(other: Any): Boolean = other.asInstanceOf[AnyRef] eq this
+}
+
+object Fail {
+  private val cached = new Fail()
+
+  def apply(): Result = cached
+}
+
+final class Succeed private() extends Result {
+  override val toString: String = "Succeed"
+  override def equals(other: Any): Boolean = other.asInstanceOf[AnyRef] eq this
+}
+
+object Succeed {
+  private val cached = new Succeed()
+
+  def apply(): Result = cached
+}
+
+object Result {
+  def combine(first: Result, second: Result): Result =
+    if (first eq second) first
+    else Fail()
+}
+
+/**
   The most boring test `Harness` you can think of:
   pure tests, with sections.
   Any harness type should be convertible to a `Harness`;
@@ -75,38 +109,4 @@ object EffectHarness {
       : T = self.section(test1, tests: _*)
     }
 
-}
-
-/**
-  A type for test results.
-  A two-branch sum, either `Succeed()`, or `Fail()`.
-*/
-sealed abstract class Result
-
-final class Fail private() extends Result {
-  override val toString: String = "Fail"
-  override def equals(other: Any): Boolean = other.asInstanceOf[AnyRef] eq this
-}
-
-object Fail {
-  private val cached = new Fail()
-
-  def apply(): Result = cached
-}
-
-final class Succeed private() extends Result {
-  override val toString: String = "Succeed"
-  override def equals(other: Any): Boolean = other.asInstanceOf[AnyRef] eq this
-}
-
-object Succeed {
-  private val cached = new Succeed()
-
-  def apply(): Result = cached
-}
-
-object Result {
-  def combine(first: Result, second: Result): Result =
-    if (first eq second) first
-    else Fail()
 }
