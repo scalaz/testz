@@ -21,12 +21,26 @@ abstract class ResourceHarness[T[_]] { self =>
 }
 ```
 
-`T[A]` is a group of tests which *depend on* a resource of type `A`.
-`T[_]` is likely to be a contravariant functor.
-This is explained by `test` taking a function `R => Result`, rather than an
-`() => Result` as in `Harness`.
+Noting the differences between `ResourceHarness[T[_]]` and `Harness[T]`:
 
-Therefore, to type a group of tests with all resources accounted for -
+  - `ResourceHarness` requires a type constructor, unlike `Harness` which takes a fully-saturated type
+     parameter.
+  - `ResourceHarness` has a `test` method which takes an `R => Result`, as opposed to
+    `Harness.test` which takes an `() => Result`. This expresses that the test *depends* on
+    a resource of type `R`.
+  - `ResourceHarness.test` also returns a `T[R]`, not a `T`. This is because the type
+    `T[R]` represents a group of tests which *depend on* a resource of type `R`.
+  - `ResourceHarness.namedSection` and `ResourceHarness.section` are both polymorphic over `R`
+    and take in `T[R]`'s and return a `T[R]`, whereas `Harness.namedSection` and `Harness.section`
+    take in and return `T`'s.
+  - `allocate` is a new method on `ResourceHarness`; it lets you discharge one resource obligation
+    by providing a way to allocate that resource. That's why it takes in a `T[(I, R)]` and `() => I`,
+    and returns a `T[R]`, which is a test group.
+
+`T[_]` is likely to be a contravariant functor, because what it represents is a *consumer*
+of `R` values.
+
+To type a group of tests with all resources accounted for -
 including the case of no resources needed at all - the type `T[Unit]` suffices.
 
 `allocate` can be used to "fill in" one of the resources required by
