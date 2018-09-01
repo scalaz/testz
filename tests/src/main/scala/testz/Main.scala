@@ -57,7 +57,7 @@ object Main {
     def unitTests = TestOutput.combineAll1(
       ExtrasSuite.tests(harness)((), List("Extras tests")),
       PropertySuite.tests(harness)((), List("Property tests")),
-      StdlibSuite.tests(harness)((), List("Stdlib tests")),
+      StdlibSuite.tests(harness, ec)((), List("Stdlib tests")),
       CoreSuite.tests(harness)((), List("Core tests")),
       ScalazSuite.tests(harness)((), List("Scalaz tests")),
     )

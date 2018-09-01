@@ -95,6 +95,33 @@ object FutureHarness {
 
   type Uses[R] = (R, List[String]) => Future[TestOutput]
 
+  def makeFromPrinter(
+    output: (Result, List[String]) => Unit
+  )(
+    ec: ExecutionContext
+  ): Harness[Uses[Unit]] =
+    ResourceHarness.toHarness(makeFromPrinterR(output)(ec))
+
+  def makeFromPrinterR(
+    output: (Result, List[String]) => Unit
+  )(
+    ec: ExecutionContext
+  ): ResourceHarness[Uses] = {
+    val self = makeFromPrinterEffR(output)(ec)
+    EffectResourceHarness.toResourceHarness(
+      new EffectResourceHarness[λ[X => X], Uses] {
+        def test[R](name: String)(assertions: R => Result): Uses[R] =
+          self.test[R](name)(assertions.andThen(Future.successful))
+        def namedSection[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] =
+          self.namedSection[R](name)(test1, tests: _*)
+        def section[R](test1: Uses[R], tests: Uses[R]*): Uses[R] =
+          self.section[R](test1, tests: _*)
+        def bracket[R, I](init: () => I)(cleanup: I => Unit)(tests: Uses[(I, R)]): Uses[R] =
+          self.bracket(() => Future.successful(init()))(_ => Future.unit)(tests)
+      }
+    )
+  }
+
   def makeFromPrinterEff(
     output: (Result, List[String]) => Unit
   )(

@@ -30,79 +30,144 @@
 
 package testz
 
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration.Duration
+
 import runner.TestOutput
 
 object StdlibSuite {
 
-  def tests[T](harness: Harness[T]): T = {
+  def tests[T](harness: Harness[T], ec: ExecutionContext): T = {
     import harness._
 
-    val noOpHarness = PureHarness.makeFromPrinterR((_, _) => ())
+    val noOpPHarness = PureHarness.makeFromPrinterR((_, _) => ())
+    val noOpFHarness = FutureHarness.makeFromPrinterEffR((_, _) => ())(ec)
 
-    namedSection("PureHarness")(
-      test("section") { () =>
-        def test(faileds: List[Boolean], expected: Boolean): Result = {
-          val arr = Array.fill(faileds.length)("")
-          def setter(r: List[Int], ls: List[String], i: Int): () => Unit =
-            () => arr(i) += (s"""${ls.mkString(", ")} - ${r.mkString(", ")}""" + i)
-          val outputs = faileds.zipWithIndex.map {
-            case (f, i) => (r: List[Int], ls: List[String]) => new TestOutput(f, setter(r, ls, i))
-          }
-          val combined =
-            noOpHarness.section[List[Int]](outputs.head, outputs.tail: _*)(List(1, 2), List("hey", "there"))
-          combined.print()
-          assert(
-            (combined.failed == expected) &&
-            arr.zipWithIndex.forall {
-              case (s, i) => (s == ("hey, there - 1, 2" + i))
+    def testSection[U](
+      faileds: List[Boolean],
+      expectingFailure: Boolean,
+      toUses: ((List[Int], List[String]) => TestOutput) => U,
+      underTest: (U, List[U]) => U,
+      run: (U, List[Int], List[String]) => TestOutput,
+      validOutput: (String, Int) => Boolean
+    ): Result = {
+      val arr = Array.fill(faileds.length)("")
+      def setter(r: List[Int], ls: List[String], i: Int): () => Unit =
+        () => arr(i) += (s"""${ls.mkString(", ")} - ${r.mkString(", ")} """ + i)
+      val outputs = faileds.zipWithIndex.map {
+        case (f, i) => toUses((r: List[Int], ls: List[String]) => new TestOutput(f, setter(r, ls, i)))
+      }
+      val combined =
+        run(underTest(outputs.head, outputs.tail), List(1, 2), List("hey", "there"))
+      combined.print()
+      assert(
+        (combined.failed == expectingFailure) &&
+        arr.zipWithIndex.forall(validOutput.tupled)
+      )
+    }
+
+    val sectionTestData = List(
+      (List(false, false, false, false, false), false),
+      (List(true, true, true, true, true), true),
+      (List(true, true, true, true, false), true),
+      (List(false, false, false, false, true), true),
+      (List(true, false, false, false, false), true),
+      (List(false, true, true, true, true), true),
+    )
+
+    section(
+      namedSection("PureHarness")(
+        test("section") { () =>
+          sectionTestData.map {
+            case (faileds, expectingFailure) =>
+              testSection[PureHarness.Uses[List[Int]]](
+                faileds,
+                expectingFailure,
+                t => t,
+                noOpPHarness.section[List[Int]],
+                (t, res, sc) => t(res, sc),
+                (s, i) => s == s"hey, there - 1, 2 $i"
+              )
+          }.reduce(Result.combine)
+        },
+        test("namedSection") { () =>
+          sectionTestData.map {
+            case (faileds, expectingFailure) =>
+              testSection[PureHarness.Uses[List[Int]]](
+                faileds,
+                expectingFailure,
+                t => t,
+                noOpPHarness.namedSection[List[Int]]("section name"),
+                (t, res, sc) => t(res, sc),
+                (s, i) => s == s"section name, hey, there - 1, 2 $i"
+              )
+          }.reduce(Result.combine)
+        },
+        test("test") { () =>
+          var outerRes = ""
+          var x = ""
+          val harness = PureHarness.makeFromPrinterR((r, ls) => x = s"$x - $r - $ls")
+          val test =
+            harness.test[List[Int]]("test name") { (res: List[Int]) =>
+              outerRes = res.toString
+              Succeed()
             }
+          val result = test(List(1, 2), List("outer"))
+          val notPrintedEarly = (x == "")
+          result.print()
+          assert(
+            notPrintedEarly &&
+            (x == " - Succeed - List(test name, outer)") &&
+            (outerRes == "List(1, 2)")
           )
-        }
-
-        List(
-          test(List(false, false, false, false, false), false),
-          test(List(true, true, true, true, true), true),
-          test(List(true, true, true, true, false), true),
-          test(List(false, false, false, false, true), true),
-          test(List(true, false, false, false, false), true),
-          test(List(false, true, true, true, true), true)
-        ).reduce(Result.combine)
-      },
-      test("namedSection") { () =>
-        var x = ""
-        var y = ""
-        val testX: PureHarness.Uses[List[Int]] =
-          (r, ls) => new TestOutput(false, () => x = s"$x - $ls - $r")
-        val testY: PureHarness.Uses[List[Int]] =
-          (r, ls) => new TestOutput(false, () => y = s"$y - $ls - $r")
-        val sec =
-          noOpHarness.namedSection("section name")(testX, testY)
-        val result = sec(List(1, 2, 3), List("outer"))
-        result.print()
-        assert(
-          (result.failed == false) &&
-          x == s""" - List(section name, outer) - List(1, 2, 3)""" &&
-          y == s""" - List(section name, outer) - List(1, 2, 3)"""
-        )
-      },
-      test("test") { () =>
-        var outerRes = ""
-        var x = ""
-        val harness = PureHarness.makeFromPrinterR((r, ls) => x = s"$x - $r - $ls")
-        val test =
-          harness.test[List[Int]]("test name") { (res: List[Int]) =>
-            outerRes = res.toString
-            Succeed()
-          }
-        val result = test(List(1, 2), List("outer"))
-        val notPrintedEarly = (x == "")
-        result.print()
-        assert(
-          notPrintedEarly &&
-          (x == " - Succeed - List(test name, outer)") &&
-          (outerRes == "List(1, 2)")
-        )
-      },
+        },
+      ),
+      namedSection("FutureHarness")(
+        test("section") { () =>
+          sectionTestData.map {
+            case (faileds, expectingFailure) =>
+              testSection[FutureHarness.Uses[List[Int]]](
+                faileds,
+                expectingFailure,
+                t => (res, sc) => Future.successful(t(res, sc)),
+                noOpFHarness.section[List[Int]],
+                (t, res, sc) => Await.result(t(res, sc), Duration.Inf),
+                (s, i) => s == s"hey, there - 1, 2 $i"
+              )
+          }.reduce(Result.combine)
+        },
+        test("namedSection") { () =>
+          sectionTestData.map {
+            case (faileds, expectingFailure) =>
+              testSection[FutureHarness.Uses[List[Int]]](
+                faileds,
+                expectingFailure,
+                t => (res, sc) => Future.successful(t(res, sc)),
+                noOpFHarness.namedSection[List[Int]]("section name"),
+                (t, res, sc) => Await.result(t(res, sc), Duration.Inf),
+                (s, i) => s == s"section name, hey, there - 1, 2 $i"
+              )
+          }.reduce(Result.combine)
+        },
+        test("test") { () =>
+          var outerRes = ""
+          var x = ""
+          val harness = FutureHarness.makeFromPrinterR((r, ls) => x = s"$x - $r - $ls")(ec)
+          val test =
+            harness.test[List[Int]]("test name") { (res: List[Int]) =>
+              outerRes = res.toString
+              Succeed()
+            }
+          val result = Await.result(test(List(1, 2), List("outer")), Duration.Inf)
+          val notPrintedEarly = (x == "")
+          result.print()
+          assert(
+            notPrintedEarly &&
+            (x == " - Succeed - List(test name, outer)") &&
+            (outerRes == "List(1, 2)")
+          )
+        },
+      )
     )
 
   }
