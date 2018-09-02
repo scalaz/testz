@@ -127,7 +127,7 @@ object EffectHarness {
 ```
 
 That's all there is to testz-core; the next step in the test-writing side of testz is
-[testz-resource](./03-resource.md).
+[testz-resource](./03-resource.html).
 
 However, if you're more interested in testz's implementation, you can skip to
-[testz-stdlib](./04-stdlib.md).
+[testz-stdlib](./04-stdlib.html).

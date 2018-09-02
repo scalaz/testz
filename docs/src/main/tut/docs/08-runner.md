@@ -101,7 +101,7 @@ immediately printing out the results of each as they finish.
 Then, prints out how long the suites took to run, using the user-supplied printer.
 Returns whether any tests failed.
 
-`futureUtil` is explained in the [testz-util docs](./10-util.md);
+`futureUtil` is explained in the [testz-util docs](./10-util.html);
 essentially it provides tools to use `Future` without submitting to an
 `ExecutionContext` unless it's necessary.
 

@@ -12,7 +12,7 @@ they do is avoid extra thread pool submissions for performance.
 All of the utilities are in `testz.futureUtil`.
 
 The rationale for this is:
-1. As stated in [Performance](./09-performance.md), testz is mostly not JITted.
+1. As stated in [Performance](./09-performance.html), testz is mostly not JITted.
 Thread pool submissions are made especially expensive by this, though they're
 already very expensive.
 2. Parallelism grain size is COMPLETELY managed by the user in testz.
