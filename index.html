@@ -1,0 +1,43 @@
+<html><head><title>testz: Home</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Edmund Noble" /><meta name="description" content="Purely functional testing library for Scala" /><meta name="og:image" content="/testz/img/poster.png" /><meta name="og:title" content="testz: Home" /><meta name="og:site_name" content="testz" /><meta name="og:url" content="" /><meta name="og:type" content="website" /><meta name="og:description" content="Purely functional testing library for Scala" /><link rel="icon" type="image/png" href="/testz/img/favicon.png" /><meta name="twitter:title" content="testz: Home" /><meta name="twitter:image" content="img/poster.png" /><meta name="twitter:description" content="Purely functional testing library for Scala" /><meta name="twitter:card" content="summary_large_image" /><link rel="icon" type="image/png" sizes="16x16" href="/testz/img/favicon16x16.png" /><link rel="icon" type="image/png" sizes="24x24" href="/testz/img/favicon24x24.png" /><link rel="icon" type="image/png" sizes="32x32" href="/testz/img/favicon32x32.png" /><link rel="icon" type="image/png" sizes="48x48" href="/testz/img/favicon48x48.png" /><link rel="icon" type="image/png" sizes="57x57" href="/testz/img/favicon57x57.png" /><link rel="icon" type="image/png" sizes="60x60" href="/testz/img/favicon60x60.png" /><link rel="icon" type="image/png" sizes="64x64" href="/testz/img/favicon64x64.png" /><link rel="icon" type="image/png" sizes="70x70" href="/testz/img/favicon70x70.png" /><link rel="icon" type="image/png" sizes="72x72" href="/testz/img/favicon72x72.png" /><link rel="icon" type="image/png" sizes="76x76" href="/testz/img/favicon76x76.png" /><link rel="icon" type="image/png" sizes="96x96" href="/testz/img/favicon96x96.png" /><link rel="icon" type="image/png" sizes="114x114" href="/testz/img/favicon114x114.png" /><link rel="icon" type="image/png" sizes="120x120" href="/testz/img/favicon120x120.png" /><link rel="icon" type="image/png" sizes="128x128" href="/testz/img/favicon128x128.png" /><link rel="icon" type="image/png" sizes="144x144" href="/testz/img/favicon144x144.png" /><link rel="icon" type="image/png" sizes="150x150" href="/testz/img/favicon150x150.png" /><link rel="icon" type="image/png" sizes="152x152" href="/testz/img/favicon152x152.png" /><link rel="icon" type="image/png" sizes="196x196" href="/testz/img/favicon196x196.png" /><link rel="icon" type="image/png" sizes="310x310" href="/testz/img/favicon310x310.png" /><link rel="icon" type="image/png" sizes="310x150" href="/testz/img/favicon310x150.png" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="/testz/highlight/styles/color-brewer.css" /><link rel="stylesheet" href="/testz/css/style.css" /><link rel="stylesheet" href="/testz/css/palette.css" /><link rel="stylesheet" href="/testz/css/codemirror.css" /></head><body><header id="site-header"><div class="navbar-wrapper"><div class="container"><div class="row"><div class="col-xs-6"><a href="/testz/" class="brand"><div class="icon-wrapper"><span>testz</span></div></a></div><div class="col-xs-6"><nav class="text-right"><ul class=""><li><a href="https://github.com/scalaz/testz"><i class="fa fa-github"></i><span class="hidden-xs">GitHub</span></a></li><li><a href="/testz/docs/01-first-example.html"><i class="fa fa-file-text"></i><span class="hidden-xs">Documentation</span></a></li></ul></nav></div></div></div></div><div class="jumbotron"><div class="container"><h1 class="text-center">Purely functional testing library for Scala</h1><h2></h2><p class="text-center"><a href="https://github.com/scalaz/testz" class="btn btn-outline-inverse">View on GitHub</a></p></div></div><div><ul class="horizontalNav">                            </ul></div></header><main id="site-main"><section class="use"><div class="container"><div id="content"><h1 id="welcome-to-testz">Welcome to testz</h1>
+
+<p>testz is a Scala library for purely functional testing.</p>
+
+<p>In its core, it provides abstractions and tools for assertions and test registration.</p>
+
+<p>It also contains multiple extension modules, for extra utilities or integration with
+other libraries.</p>
+
+<h2 id="library-dependency">Library Dependency</h2>
+
+<p>For the most basic building blocks of testz:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.scalaz"</span> <span class="o">%%</span> <span class="s">"testz-core"</span> <span class="o">%</span> <span class="s">"0.0.4"</span>
+</code></pre></div></div>
+
+<p>For the most basic, zero-dependency test harnesses
+(see the <a href="./docs/01-first-example.html">simple example</a>):</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.scalaz"</span> <span class="o">%%</span> <span class="s">"testz-stdlib"</span> <span class="o">%</span> <span class="s">"0.0.4"</span>
+</code></pre></div></div>
+<p>:
+For a way to run testz test suites
+(see <a href="./docs/07-runner.html">here</a> for details):</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.scalaz"</span> <span class="o">%%</span> <span class="s">"testz-runner"</span> <span class="o">%</span> <span class="s">"0.0.4"</span>
+</code></pre></div></div>
+
+<p>For scalaz 7.2 support (see <a href="./docs/04-scalaz.html">here</a> for information on what that constitutes):</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">libraryDependencies</span> <span class="o">+=</span> <span class="s">"org.scalaz"</span> <span class="o">%%</span> <span class="s">"testz-scalaz"</span> <span class="o">%</span> <span class="s">"0.0.4"</span>
+</code></pre></div></div>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">testz._</span>
+</code></pre></div></div>
+
+<p>Come to the <a href="https://gitter.im/scalaz/testz">Gitter</a>.</p>
+</div></div></section><section class="technologies"><div class="container"><div class="row"></div></div></section></main><footer id="site-footer"><div class="container"><div class="row"><div class="col-xs-6"><p>testz is designed and developed by <a href="" target="_blank">Edmund Noble</a></p></div><div class="col-xs-6"><p class="text-right"><a href="https://github.com/scalaz/testz"><span class="fa fa-github"></span>View on GitHub</a></p></div></div><div class="row"><div class="col-xs-6"><p>Website built with <a href="https://47deg.github.io/sbt-microsites/" target="_blank">Sbt-microsites</a> - © 2016 <a href="https://www.47deg.com/" target="_blank">47 Degrees</a></p></div></div></div></footer><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/testz/highlight/highlight.pack.js"></script><script>hljs.configure({
+languages:['scala','java','bash']
+});
+hljs.initHighlighting();
+             </script><script>((window.gitter = {}).chat = {}).options = {
+room: 'scalaz/testz'};</script><script src="https://sidecar.gitter.im/dist/sidecar.v1.js"></script></body></html>
