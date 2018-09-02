@@ -12,6 +12,8 @@ The pure testing library by scalaz.
 [coverage-image]: https://img.shields.io/codecov/c/github/scalaz/testz/master.svg
 [coverage-url]: https://codecov.io/github/scalaz/testz?branch=master
 
+See the docs at https://scalaz.github.io/testz/.
+
 [![Join the chat at https://gitter.im/scalaz/testz](https://badges.gitter.im/scalaz/testz.svg)](https://gitter.im/scalaz/testz?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Pitch
