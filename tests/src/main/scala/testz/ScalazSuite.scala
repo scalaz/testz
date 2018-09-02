@@ -141,34 +141,58 @@ object ScalazSuite {
             !result.failed
           )
         },
-        test("bracket") { () =>
-          var stages: List[String] = Nil
-          var testOut = ""
-          val bracket: (Unit, List[String]) => TestOutput =
-            (u, ls) =>
-              TaskHarness.makeFromPrinterEffR((_, _) => ()).bracket[Unit, List[Int]] { () =>
-                stages ::= "alloc"
-                Task.now(List(1, 2))
-              } {
-                li => Task.delay { stages ::= "cleanup" }
-              } {
-                (res: (List[Int], Unit), ls: List[String]) =>
-                  stages ::= "test"
-                  testOut = res._1.toString + " " + ls
-                  Task.now(new TestOutput(false, { () => stages ::= "print" }))
-              }(u, ls).unsafePerformSync
-          val result = bracket((), List("scope"))
-          val ranEarly = (testOut != "") || (stages != Nil)
-          val notPrintedEarly = !stages.contains("print")
-          result.print()
-          assert(
-            ranEarly &&
-            notPrintedEarly &&
-            (stages == List("print", "cleanup", "test", "alloc")) &&
-            (testOut == "List(1, 2) List(scope)") &&
-            !result.failed
-          )
-        }
+        namedSection("bracket")(
+          test("successful") { () =>
+            var stages: List[String] = Nil
+            var testOut = ""
+            val bracket: (Unit, List[String]) => TestOutput =
+              (u, ls) =>
+                TaskHarness.makeFromPrinterEffR((_, _) => ()).bracket[Unit, List[Int]] { () =>
+                  stages ::= "alloc"
+                  Task.now(List(1, 2))
+                } {
+                  li => Task.delay { stages ::= "cleanup" }
+                } {
+                  (res: (List[Int], Unit), ls: List[String]) =>
+                    stages ::= "test"
+                    testOut = res._1.toString + " " + ls
+                    Task.now(new TestOutput(false, { () => stages ::= "print" }))
+                }(u, ls).unsafePerformSync
+            val result = bracket((), List("scope"))
+            val ranEarly = (testOut != "") || (stages != Nil)
+            val notPrintedEarly = !stages.contains("print")
+            result.print()
+            assert(
+              ranEarly &&
+              notPrintedEarly &&
+              (stages == List("print", "cleanup", "test", "alloc")) &&
+              (testOut == "List(1, 2) List(scope)") &&
+              !result.failed
+            )
+          },
+          test("failing") { () =>
+            var stages: List[String] = Nil
+            var testOut = ""
+            val bracket: (Unit, List[String]) => Throwable \/ TestOutput =
+              (u, ls) =>
+                TaskHarness.makeFromPrinterEffR((_, _) => ()).bracket[Unit, List[Int]] { () =>
+                  stages ::= "alloc"
+                  Task.now(List(1, 2))
+                } {
+                  li => Task.delay { stages ::= "cleanup" }
+                } {
+                  (res: (List[Int], Unit), ls: List[String]) =>
+                    stages ::= "test"
+                    testOut = res._1.toString + " " + ls
+                    Task.fail(new Exception())
+                }(u, ls).attempt.unsafePerformSync
+            bracket((), List("scope"))
+            assert(
+              (stages == List("cleanup", "test", "alloc")) &&
+              (testOut == "List(1, 2) List(scope)")
+            )
+          },
+        ),
       )
     )
   }
