@@ -37,12 +37,6 @@ import runner.TestOutput
 
 object StdlibSuite {
 
-  def tests[T](harness: Harness[T], ec: ExecutionContext): T = {
-    import harness._
-
-    val noOpPHarness = PureHarness.makeFromPrinterR((_, _) => ())
-    val noOpFHarness = FutureHarness.makeFromPrinterEffR((_, _) => ())(ec)
-
     def testSection[U](
       faileds: List[Boolean],
       expectingFailure: Boolean,
@@ -74,6 +68,12 @@ object StdlibSuite {
       (List(true, false, false, false, false), true),
       (List(false, true, true, true, true), true),
     )
+
+  def tests[T](harness: Harness[T], ec: ExecutionContext): T = {
+    import harness._
+
+    val noOpPHarness = PureHarness.makeFromPrinterR((_, _) => ())
+    val noOpFHarness = FutureHarness.makeFromPrinterEffR((_, _) => ())(ec)
 
     section(
       namedSection("PureHarness")(

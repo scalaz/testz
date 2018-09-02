@@ -32,36 +32,88 @@ package testz
 
 import z._
 import scalaz._, Scalaz._
+import scalaz.concurrent.Task
 
 object ScalazSuite {
   def tests[T](harness: Harness[T]): T = {
     import harness._
+    import StdlibSuite.{testSection, sectionTestData}
 
     // every possible `Result` value
     val allResults = List(Succeed(), Fail())
 
-    namedSection("instances")(
-      namedSection("result monoid")(
-        test("mappend equivalent to Result.combine") { () =>
-          (allResults |@| allResults).tupled.map {
-            case (i1, i2) =>
-              assert(
-                Result.combine(i1, i2) == (i1 |+| i2)
+    val noOpTHarness = TaskHarness.makeFromPrinterR((_, _) => ())
+
+    section(
+      namedSection("instances")(
+        namedSection("result monoid")(
+          test("mappend equivalent to Result.combine") { () =>
+            (allResults |@| allResults).tupled.map {
+              case (i1, i2) =>
+                assert(
+                  Result.combine(i1, i2) == (i1 |+| i2)
+                )
+            }.reduce(Result.combine)
+          },
+          test("mempty is Succeed()") { () =>
+            assert(Monoid[Result].zero == Succeed())
+          },
+        ),
+        namedSection("result equal")(
+          test("should agree with equals") { () =>
+            (allResults |@| allResults).tupled.foldMap {
+              case (i1, i2) =>
+                assert((i1 == i2) == (i1 === i2))
+            }
+          },
+        ),
+      ),
+      namedSection("TaskHarness")(
+        test("section") { () =>
+          sectionTestData.map {
+            case (faileds, expectingFailure) =>
+              testSection[TaskHarness.Uses[List[Int]]](
+                faileds,
+                expectingFailure,
+                t => (res, sc) => Task.now(t(res, sc)),
+                noOpTHarness.section[List[Int]],
+                (t, res, sc) => t(res, sc).unsafePerformSync,
+                (s, i) => s == s"hey, there - 1, 2 $i"
               )
           }.reduce(Result.combine)
         },
-        test("mempty is Succeed()") { () =>
-          assert(Monoid[Result].zero == Succeed())
+        test("namedSection") { () =>
+          sectionTestData.map {
+            case (faileds, expectingFailure) =>
+              testSection[TaskHarness.Uses[List[Int]]](
+                faileds,
+                expectingFailure,
+                t => (res, sc) => Task.now(t(res, sc)),
+                noOpTHarness.namedSection[List[Int]]("section name"),
+                (t, res, sc) => t(res, sc).unsafePerformSync,
+                (s, i) => s == s"section name, hey, there - 1, 2 $i"
+              )
+          }.reduce(Result.combine)
         },
-      ),
-      namedSection("result equal")(
-        test("should agree with equals") { () =>
-          (allResults |@| allResults).tupled.foldMap {
-            case (i1, i2) =>
-              assert((i1 == i2) == (i1 === i2))
-          }
+        test("test") { () =>
+          var outerRes = ""
+          var x = ""
+          val harness = TaskHarness.makeFromPrinterR((r, ls) => x = s"$x - $r - $ls")
+          val test =
+            harness.test[List[Int]]("test name") { (res: List[Int]) =>
+              outerRes = res.toString
+              Succeed()
+            }
+          val result = test(List(1, 2), List("outer")).unsafePerformSync
+          val notPrintedEarly = (x == "")
+          result.print()
+          assert(
+            notPrintedEarly &&
+            (x == " - Succeed - List(test name, outer)") &&
+            (outerRes == "List(1, 2)")
+          )
         },
-      ),
+      )
     )
   }
 }
