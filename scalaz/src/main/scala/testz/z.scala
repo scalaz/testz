@@ -37,28 +37,6 @@ import scalaz._, Scalaz._
 import scalaz.concurrent.Task
 
 object z {
-
-  /**
-   * run an Unfold using a Fold, taking stack-safety from the `F`.
-   */
-  final def zapFold[F[_], A, B](unfold: Unfold[F, A], fold: Fold[F, A, B])
-                               (implicit F: BindRec[F]): F[B] = {
-    def go(foldS: fold.S, unfoldS: unfold.S): F[(fold.S, unfold.S) \/ B] = for {
-      nextU <- unfold.step(unfoldS)
-      res <- nextU.cata(
-        {
-          case (newUnfoldS, newA) =>
-            fold.step(foldS, newA).map {
-              newFoldS => (newFoldS, newUnfoldS).left[B]
-            }
-        },
-        fold.end(foldS).map(_.right[(fold.S, unfold.S)])
-      )
-    } yield res
-
-    F.tailrecM[(fold.S, unfold.S), B]({ case (fs, us) => go(fs, us) })((fold.start, unfold.start))
-  }
-
   implicit val equalResult: Equal[Result] =
     Equal.equal(_ eq _)
 
@@ -138,21 +116,6 @@ object z {
 
   object streaming {
 
-    def runTests[F[_]: Applicative, G[_]: Applicative, I](
-      testGenerator: I => F[Result]
-    ): Fold[G, I, F[Result]] =
-      new Fold[G, I, F[Result]] {
-        type S = List[F[Result]]
-        val start = Nil
-        def step(s: List[F[Result]], i: I): G[List[F[Result]]] =
-          (testGenerator(i) :: s).pure[G]
-        def end(s: List[F[Result]]): G[F[Result]] = {
-          s.foldRight(Succeed().point[F])(
-            Applicative[F].apply2(_, _)(Result.combine)
-          ).pure[G]
-        }
-      }
-
     def exhaustive[F[_]: Applicative, I]
                   (in: List[(() => I)])
                   (testGenerator: I => F[Result])
@@ -160,20 +123,6 @@ object z {
       in.foldLeft(Succeed().point[F])((b, a) =>
         Applicative[F].apply2(b, testGenerator(a()))(Result.combine)
       )
-
-    def exhaustiveU[F[_]: BindRec, I]
-                  (in: Unfold[F, I])
-                  (testGenerator: I => F[Result])
-                  (implicit F: Monad[F]): F[Result] = {
-      F.join(exhaustiveUR[F, F, I](in)(testGenerator))
-    }
-
-    def exhaustiveUR[F[_]: Applicative, G[_]: Monad: BindRec, I]
-    (in: Unfold[G, I]
-    )(testGenerator: I => F[Result]
-    ): G[F[Result]] = {
-      zapFold(in, runTests[F, G, I](testGenerator))
-    }
 
     def exhaustiveV[F[_]: Applicative, I]
                   (in: (() => I)*)
