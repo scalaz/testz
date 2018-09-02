@@ -1,0 +1,176 @@
+<html><head><title>testz: testz-stdlib</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Edmund Noble" /><meta name="description" content="Purely functional testing library for Scala" /><meta name="og:image" content="/testz/img/poster.png" /><meta name="og:title" content="testz: testz-stdlib" /><meta name="og:site_name" content="testz" /><meta name="og:url" content="" /><meta name="og:type" content="website" /><meta name="og:description" content="Purely functional testing library for Scala" /><link rel="icon" type="image/png" href="/testz/img/favicon.png" /><meta name="twitter:title" content="testz: testz-stdlib" /><meta name="twitter:image" content="img/poster.png" /><meta name="twitter:description" content="Purely functional testing library for Scala" /><meta name="twitter:card" content="summary_large_image" /><link rel="icon" type="image/png" sizes="16x16" href="/testz/img/favicon16x16.png" /><link rel="icon" type="image/png" sizes="24x24" href="/testz/img/favicon24x24.png" /><link rel="icon" type="image/png" sizes="32x32" href="/testz/img/favicon32x32.png" /><link rel="icon" type="image/png" sizes="48x48" href="/testz/img/favicon48x48.png" /><link rel="icon" type="image/png" sizes="57x57" href="/testz/img/favicon57x57.png" /><link rel="icon" type="image/png" sizes="60x60" href="/testz/img/favicon60x60.png" /><link rel="icon" type="image/png" sizes="64x64" href="/testz/img/favicon64x64.png" /><link rel="icon" type="image/png" sizes="70x70" href="/testz/img/favicon70x70.png" /><link rel="icon" type="image/png" sizes="72x72" href="/testz/img/favicon72x72.png" /><link rel="icon" type="image/png" sizes="76x76" href="/testz/img/favicon76x76.png" /><link rel="icon" type="image/png" sizes="96x96" href="/testz/img/favicon96x96.png" /><link rel="icon" type="image/png" sizes="114x114" href="/testz/img/favicon114x114.png" /><link rel="icon" type="image/png" sizes="120x120" href="/testz/img/favicon120x120.png" /><link rel="icon" type="image/png" sizes="128x128" href="/testz/img/favicon128x128.png" /><link rel="icon" type="image/png" sizes="144x144" href="/testz/img/favicon144x144.png" /><link rel="icon" type="image/png" sizes="150x150" href="/testz/img/favicon150x150.png" /><link rel="icon" type="image/png" sizes="152x152" href="/testz/img/favicon152x152.png" /><link rel="icon" type="image/png" sizes="196x196" href="/testz/img/favicon196x196.png" /><link rel="icon" type="image/png" sizes="310x310" href="/testz/img/favicon310x310.png" /><link rel="icon" type="image/png" sizes="310x150" href="/testz/img/favicon310x150.png" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="/testz/highlight/styles/color-brewer.css" /><link rel="stylesheet" href="/testz/css/style.css" /><link rel="stylesheet" href="/testz/css/palette.css" /><link rel="stylesheet" href="/testz/css/codemirror.css" /></head><body class="docs"><div id="wrapper"><div id="sidebar-wrapper"><ul id="sidebar" class="sidebar-nav"><li class="sidebar-brand"><a href="/testz/" class="brand"><div class="brand-wrapper"><span>testz</span></div></a></li><li><a href="/testz/docs/01-first-example.html" class="">First Example</a></li><li><a href="/testz/docs/02-core.html" class="">testz-core</a></li><li><a href="/testz/docs/03-resource.html" class="">testz-resource</a></li><li><a href="/testz/docs/04-stdlib.html" class=" active ">testz-stdlib</a></li><li><a href="/testz/docs/05-scalaz.html" class="">testz-scalaz</a></li><li><a href="/testz/docs/06-specs2.html" class="">testz-specs2</a></li><li><a href="/testz/docs/07-scalatest.html" class="">testz-scalatest</a></li><li><a href="/testz/docs/08-runner.html" class="">testz-runner</a></li><li><a href="/testz/docs/09-performance.html" class="">Performance</a></li><li><a href="/testz/docs/10-tests.html" class="">testz-util</a></li><li><a href="/testz/docs/11-util.html" class="">testz-util</a></li><li><a href="/testz/css/palette.css" class=""></a></li><li><a href="/testz/css/style.css" class=""></a></li></ul></div><div id="page-content-wrapper"><div class="nav"><div class="container-fluid"><div class="row"><div class="col-lg-12"><div class="action-menu pull-left clearfix"><a href="#menu-toggle" id="menu-toggle"><i class="fa fa-bars" aria-hidden="true"></i></a></div><ul class="pull-right"><li id="gh-eyes-item" class="hidden-xs"><a href="https://github.com/scalaz/testz"><i class="fa fa-eye"></i><span>WATCH<span id="eyes" class="label label-default">--</span></span></a></li><li id="gh-stars-item" class="hidden-xs"><a href="https://github.com/scalaz/testz"><i class="fa fa-star-o"></i><span>STARS<span id="stars" class="label label-default">--</span></span></a></li><li><a href="#" onclick="shareSiteTwitter('testz Purely functional testing library for Scala');"><i class="fa fa-twitter"></i></a></li><li><a href="#" onclick="shareSiteFacebook('testz Purely functional testing library for Scala');"><i class="fa fa-facebook"></i></a></li><li><a href="#" onclick="shareSiteGoogle();"><i class="fa fa-google-plus"></i></a></li></ul></div></div></div></div><div id="content" data-github-owner="scalaz" data-github-repo="testz"><div class="content-wrapper"><section><h1 id="testz-stdlib">testz-stdlib</h1>
+
+<p>The <code class="highlighter-rouge">testz-stdlib</code> module provides basic testz harnesses using nothing more
+than the standard library, <code class="highlighter-rouge">testz-core</code>, <code class="highlighter-rouge">testz-resource</code>, and <code class="highlighter-rouge">testz-util</code>.</p>
+
+<p>It provides two harnesses: <code class="highlighter-rouge">PureHarness</code> and <code class="highlighter-rouge">FutureHarness</code>. Both are built to be
+used with testz-runner, despite there being no dependency on testz-runner.</p>
+
+<p><code class="highlighter-rouge">PureHarness</code> is a harness type for tests which return <code class="highlighter-rouge">testz.Result</code>.</p>
+
+<p>Its <code class="highlighter-rouge">Uses[R]</code> type alias is the implementation type of <code class="highlighter-rouge">PureHarness</code>;
+a test group depending on a resource <code class="highlighter-rouge">R</code> in <code class="highlighter-rouge">PureHarness</code> is an
+<code class="highlighter-rouge">(R, List[String]) =&gt; TestOutput</code>; a function which, given the resource
+it needs and the current test group name (and all labels attached to it)
+produces a <code class="highlighter-rouge">TestOutput</code>, which describes both how to print the results
+of the group and whether any tests failed.</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">testz._</span>
+<span class="k">import</span> <span class="nn">testz.runner.TestOutput</span>
+
+<span class="k">object</span> <span class="nc">PureHarness</span> <span class="o">{</span>
+  <span class="k">type</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span> <span class="k">=</span> <span class="o">(</span><span class="n">R</span><span class="o">,</span> <span class="nc">List</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="k">=&gt;</span> <span class="nc">TestOutput</span>
+
+  <span class="k">def</span> <span class="n">makeFromPrinter</span><span class="o">(</span>
+    <span class="n">output</span><span class="k">:</span> <span class="o">(</span><span class="kt">Result</span><span class="o">,</span> <span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="k">=&gt;</span> <span class="nc">Unit</span>
+  <span class="o">)</span><span class="k">:</span> <span class="kt">Harness</span><span class="o">[</span><span class="kt">Uses</span><span class="o">[</span><span class="kt">Unit</span><span class="o">]]</span> <span class="k">=</span>
+    <span class="nc">ResourceHarness</span><span class="o">.</span><span class="n">toHarness</span><span class="o">(</span><span class="n">makeFromPrinterR</span><span class="o">(</span><span class="n">output</span><span class="o">))</span>
+
+  <span class="k">def</span> <span class="n">makeFromPrinterR</span><span class="o">(</span>
+    <span class="n">output</span><span class="k">:</span> <span class="o">(</span><span class="kt">Result</span><span class="o">,</span> <span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="k">=&gt;</span> <span class="nc">Unit</span>
+  <span class="o">)</span><span class="k">:</span> <span class="kt">ResourceHarness</span><span class="o">[</span><span class="kt">Uses</span><span class="o">]</span> <span class="k">=</span>
+    <span class="k">new</span> <span class="nc">ResourceHarness</span><span class="o">[</span><span class="kt">Uses</span><span class="o">]</span> <span class="o">{</span>
+      <span class="k">override</span> <span class="k">def</span> <span class="n">test</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span>
+        <span class="o">(</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span>
+        <span class="o">(</span><span class="n">assertions</span><span class="k">:</span> <span class="kt">R</span> <span class="o">=&gt;</span> <span class="nc">Result</span>
+      <span class="o">)</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span> <span class="k">=</span>
+        <span class="c1">// note that `assertions(r)` is *already computed* before the
+</span>        <span class="c1">// `() =&gt; Unit` is run; this is important to separate phases between
+</span>        <span class="c1">// printing and running tests.
+</span>        <span class="o">{</span> <span class="o">(</span><span class="n">resource</span><span class="o">,</span> <span class="n">scope</span><span class="o">)</span> <span class="k">=&gt;</span>
+          <span class="k">val</span> <span class="n">result</span> <span class="k">=</span> <span class="n">assertions</span><span class="o">(</span><span class="n">resource</span><span class="o">)</span>
+          <span class="k">new</span> <span class="nc">TestOutput</span><span class="o">(</span>
+            <span class="n">result</span> <span class="n">ne</span> <span class="nc">Succeed</span><span class="o">(),</span>
+            <span class="o">()</span> <span class="k">=&gt;</span> <span class="n">output</span><span class="o">(</span><span class="n">result</span><span class="o">,</span> <span class="n">name</span> <span class="o">::</span> <span class="n">scope</span><span class="o">)</span>
+          <span class="o">)</span>
+        <span class="o">}</span>
+
+      <span class="k">override</span> <span class="k">def</span> <span class="n">namedSection</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span>
+        <span class="o">(</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span>
+        <span class="o">(</span><span class="n">test1</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">],</span> <span class="n">tests</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]*</span>
+      <span class="o">)</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+        <span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">sc</span><span class="o">)</span> <span class="k">=&gt;</span>
+          <span class="k">val</span> <span class="n">newScope</span> <span class="k">=</span> <span class="n">name</span> <span class="o">::</span> <span class="n">sc</span>
+          <span class="k">val</span> <span class="n">outFirst</span> <span class="k">=</span> <span class="n">test1</span><span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">newScope</span><span class="o">)</span>
+          <span class="k">val</span> <span class="n">outRest</span> <span class="k">=</span> <span class="n">tests</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="k">_</span><span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">newScope</span><span class="o">))</span>
+          <span class="nc">TestOutput</span><span class="o">.</span><span class="n">combineAll1</span><span class="o">(</span><span class="n">outFirst</span><span class="o">,</span> <span class="n">outRest</span><span class="k">:</span> <span class="k">_</span><span class="kt">*</span><span class="o">)</span>
+      <span class="o">}</span>
+
+      <span class="k">override</span> <span class="k">def</span> <span class="n">section</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span>
+        <span class="o">(</span><span class="n">test1</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">],</span> <span class="n">tests</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]*</span>
+      <span class="o">)</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+        <span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">sc</span><span class="o">)</span> <span class="k">=&gt;</span>
+          <span class="k">val</span> <span class="n">outFirst</span> <span class="k">=</span> <span class="n">test1</span><span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">sc</span><span class="o">)</span>
+          <span class="k">val</span> <span class="n">outRest</span> <span class="k">=</span> <span class="n">tests</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="k">_</span><span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">sc</span><span class="o">))</span>
+          <span class="nc">TestOutput</span><span class="o">.</span><span class="n">combineAll1</span><span class="o">(</span><span class="n">outFirst</span><span class="o">,</span> <span class="n">outRest</span><span class="k">:</span> <span class="k">_</span><span class="kt">*</span><span class="o">)</span>
+      <span class="o">}</span>
+
+      <span class="k">override</span> <span class="k">def</span> <span class="n">allocate</span><span class="o">[</span><span class="kt">R</span>, <span class="kt">I</span><span class="o">]</span>
+        <span class="o">(</span><span class="n">init</span><span class="k">:</span> <span class="o">()</span> <span class="o">=&gt;</span> <span class="n">I</span><span class="o">)</span>
+        <span class="o">(</span><span class="n">tests</span><span class="k">:</span> <span class="o">((</span><span class="kt">I</span><span class="o">,</span> <span class="kt">R</span><span class="o">),</span> <span class="nc">List</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="k">=&gt;</span> <span class="nc">TestOutput</span>
+      <span class="o">)</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span> <span class="k">=</span>
+        <span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">sc</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">tests</span><span class="o">((</span><span class="n">init</span><span class="o">(),</span> <span class="n">r</span><span class="o">),</span> <span class="n">sc</span><span class="o">)</span>
+    <span class="o">}</span>
+
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p><code class="highlighter-rouge">FutureHarness</code> is a harness type for tests which return <code class="highlighter-rouge">Future[testz.Result]</code>.</p>
+
+<p>It’s a lot more verbose than <code class="highlighter-rouge">PureHarness</code>, mostly because I’m careful with
+<code class="highlighter-rouge">ExecutionContext</code> and because there are several generic utilities missing from
+<code class="highlighter-rouge">Future</code> that are very useful in implementing the harness in a clear and concise
+way.</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">testz._</span>
+<span class="k">import</span> <span class="nn">testz.runner.TestOutput</span>
+
+<span class="k">import</span> <span class="nn">scala.concurrent.</span><span class="o">{</span><span class="nc">ExecutionContext</span><span class="o">,</span> <span class="nc">Future</span><span class="o">,</span> <span class="nc">Promise</span><span class="o">}</span>
+<span class="k">import</span> <span class="nn">scala.util.Try</span>
+
+<span class="k">object</span> <span class="nc">FutureHarness</span> <span class="o">{</span>
+
+  <span class="k">type</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span> <span class="k">=</span> <span class="o">(</span><span class="n">R</span><span class="o">,</span> <span class="nc">List</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="k">=&gt;</span> <span class="nc">Future</span><span class="o">[</span><span class="kt">TestOutput</span><span class="o">]</span>
+
+  <span class="k">def</span> <span class="n">makeFromPrinterEff</span><span class="o">(</span>
+    <span class="n">output</span><span class="k">:</span> <span class="o">(</span><span class="kt">Result</span><span class="o">,</span> <span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="k">=&gt;</span> <span class="nc">Unit</span>
+  <span class="o">)(</span>
+    <span class="n">ec</span><span class="k">:</span> <span class="kt">ExecutionContext</span>
+  <span class="o">)</span><span class="k">:</span> <span class="kt">EffectHarness</span><span class="o">[</span><span class="kt">Future</span>, <span class="kt">Uses</span><span class="o">[</span><span class="kt">Unit</span><span class="o">]]</span> <span class="k">=</span>
+    <span class="nc">EffectResourceHarness</span><span class="o">.</span><span class="n">toEffectHarness</span><span class="o">(</span><span class="n">makeFromPrinterEffR</span><span class="o">(</span><span class="n">output</span><span class="o">)(</span><span class="n">ec</span><span class="o">))</span>
+
+  <span class="k">def</span> <span class="n">makeFromPrinterEffR</span><span class="o">(</span>
+    <span class="n">outputTest</span><span class="k">:</span> <span class="o">(</span><span class="kt">Result</span><span class="o">,</span> <span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">])</span> <span class="k">=&gt;</span> <span class="nc">Unit</span><span class="o">,</span>
+  <span class="o">)(</span>
+    <span class="n">ec</span><span class="k">:</span> <span class="kt">ExecutionContext</span>
+  <span class="o">)</span><span class="k">:</span> <span class="kt">EffectResourceHarness</span><span class="o">[</span><span class="kt">Future</span>, <span class="kt">Uses</span><span class="o">]</span> <span class="k">=</span>
+    <span class="k">new</span> <span class="nc">EffectResourceHarness</span><span class="o">[</span><span class="kt">Future</span>, <span class="kt">Uses</span><span class="o">]</span> <span class="o">{</span>
+      <span class="c1">// note that `assertions(r)` is *already computed* before we run
+</span>      <span class="c1">// the `() =&gt; Unit`.
+</span>      <span class="k">def</span> <span class="n">test</span><span class="o">[</span><span class="kt">R</span><span class="o">](</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">)(</span><span class="n">assertions</span><span class="k">:</span> <span class="kt">R</span> <span class="o">=&gt;</span> <span class="nc">Future</span><span class="o">[</span><span class="kt">Result</span><span class="o">])</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span> <span class="k">=</span>
+        <span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">sc</span><span class="o">)</span> <span class="k">=&gt;</span> <span class="n">assertions</span><span class="o">(</span><span class="n">r</span><span class="o">).</span><span class="n">map</span> <span class="o">{</span> <span class="n">result</span> <span class="k">=&gt;</span>
+          <span class="k">new</span> <span class="nc">TestOutput</span><span class="o">(</span><span class="n">result</span> <span class="n">ne</span> <span class="nc">Succeed</span><span class="o">(),</span> <span class="o">()</span> <span class="k">=&gt;</span> <span class="n">outputTest</span><span class="o">(</span><span class="n">result</span><span class="o">,</span> <span class="n">name</span> <span class="o">::</span> <span class="n">sc</span><span class="o">))</span>
+        <span class="o">}(</span><span class="n">ec</span><span class="o">)</span>
+
+      <span class="k">def</span> <span class="n">namedSection</span><span class="o">[</span><span class="kt">R</span><span class="o">](</span><span class="n">name</span><span class="k">:</span> <span class="kt">String</span><span class="o">)(</span><span class="n">test1</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">],</span> <span class="n">tests</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]*)</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+        <span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">sc</span><span class="o">)</span> <span class="k">=&gt;</span>
+          <span class="k">val</span> <span class="n">newScope</span> <span class="k">=</span> <span class="n">name</span> <span class="o">::</span> <span class="n">sc</span>
+          <span class="n">test1</span><span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">newScope</span><span class="o">).</span><span class="n">flatMap</span> <span class="o">{</span> <span class="n">p1</span> <span class="k">=&gt;</span>
+            <span class="n">futureUtil</span><span class="o">.</span><span class="n">collectIterator</span><span class="o">(</span><span class="n">tests</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="k">_</span><span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">newScope</span><span class="o">)))(</span><span class="n">ec</span><span class="o">).</span><span class="n">map</span> <span class="o">{</span> <span class="n">ps</span> <span class="k">=&gt;</span>
+              <span class="nc">TestOutput</span><span class="o">.</span><span class="n">combineAll1</span><span class="o">(</span><span class="n">p1</span><span class="o">,</span> <span class="n">ps</span><span class="k">:</span> <span class="k">_</span><span class="kt">*</span><span class="o">)</span>
+            <span class="o">}(</span><span class="n">ec</span><span class="o">)</span>
+          <span class="o">}(</span><span class="n">ec</span><span class="o">)</span>
+      <span class="o">}</span>
+
+      <span class="k">def</span> <span class="n">section</span><span class="o">[</span><span class="kt">R</span><span class="o">](</span><span class="n">test1</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">],</span> <span class="n">tests</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]*)</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+        <span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">sc</span><span class="o">)</span> <span class="k">=&gt;</span>
+          <span class="n">test1</span><span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">sc</span><span class="o">).</span><span class="n">flatMap</span> <span class="o">{</span> <span class="n">p1</span> <span class="k">=&gt;</span>
+            <span class="n">futureUtil</span><span class="o">.</span><span class="n">collectIterator</span><span class="o">(</span><span class="n">tests</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="k">_</span><span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">sc</span><span class="o">)))(</span><span class="n">ec</span><span class="o">).</span><span class="n">map</span> <span class="o">{</span> <span class="n">ps</span> <span class="k">=&gt;</span>
+              <span class="nc">TestOutput</span><span class="o">.</span><span class="n">combineAll1</span><span class="o">(</span><span class="n">p1</span><span class="o">,</span> <span class="n">ps</span><span class="k">:</span> <span class="k">_</span><span class="kt">*</span><span class="o">)</span>
+            <span class="o">}(</span><span class="n">ec</span><span class="o">)</span>
+          <span class="o">}(</span><span class="n">ec</span><span class="o">)</span>
+      <span class="o">}</span>
+
+      <span class="c1">// a more powerful version of `Future.transform` that lets you block on
+</span>      <span class="c1">// whatever you make from the inner `Try[A]`, instead of only letting you
+</span>      <span class="c1">// return a `Try`.
+</span>      <span class="c1">// relative monad operation (`rflatMap :: f a -&gt; (g a -&gt; f b) -&gt; f b`)
+</span>      <span class="k">private</span> <span class="k">def</span> <span class="n">blockingTransform</span><span class="o">[</span><span class="kt">A</span>, <span class="kt">B</span><span class="o">](</span><span class="n">fut</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">A</span><span class="o">])(</span><span class="n">f</span><span class="k">:</span> <span class="kt">Try</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=&gt;</span> <span class="nc">Future</span><span class="o">[</span><span class="kt">B</span><span class="o">])(</span><span class="n">ec</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">B</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+        <span class="k">val</span> <span class="n">prom</span> <span class="k">=</span> <span class="nc">Promise</span><span class="o">[</span><span class="kt">B</span><span class="o">]</span>
+        <span class="n">fut</span><span class="o">.</span><span class="n">onComplete</span> <span class="o">{</span>
+          <span class="n">t</span> <span class="k">=&gt;</span> <span class="n">prom</span><span class="o">.</span><span class="n">completeWith</span><span class="o">(</span><span class="n">f</span><span class="o">(</span><span class="n">t</span><span class="o">))</span>
+        <span class="o">}(</span><span class="n">ec</span><span class="o">)</span>
+        <span class="n">prom</span><span class="o">.</span><span class="n">future</span>
+      <span class="o">}</span>
+
+      <span class="k">private</span> <span class="k">def</span> <span class="n">fromTry</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">t</span><span class="k">:</span> <span class="kt">Try</span><span class="o">[</span><span class="kt">A</span><span class="o">])</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">A</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">t</span><span class="o">.</span><span class="n">isInstanceOf</span><span class="o">[</span><span class="kt">scala.util.Failure</span><span class="o">[</span><span class="kt">A</span><span class="o">]])</span>
+          <span class="nc">Future</span><span class="o">.</span><span class="n">failed</span><span class="o">(</span><span class="n">t</span><span class="o">.</span><span class="n">asInstanceOf</span><span class="o">[</span><span class="kt">scala.util.Failure</span><span class="o">[</span><span class="kt">A</span><span class="o">]].</span><span class="n">exception</span><span class="o">)</span>
+        <span class="k">else</span>
+          <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="n">t</span><span class="o">.</span><span class="n">asInstanceOf</span><span class="o">[</span><span class="kt">scala.util.Success</span><span class="o">[</span><span class="kt">A</span><span class="o">]].</span><span class="n">value</span><span class="o">)</span>
+      <span class="o">}</span>
+
+      <span class="k">def</span> <span class="n">bracket</span><span class="o">[</span><span class="kt">R</span>, <span class="kt">I</span><span class="o">]</span>
+        <span class="o">(</span><span class="n">init</span><span class="k">:</span> <span class="o">()</span> <span class="o">=&gt;</span> <span class="nc">Future</span><span class="o">[</span><span class="kt">I</span><span class="o">])</span>
+        <span class="o">(</span><span class="n">cleanup</span><span class="k">:</span> <span class="kt">I</span> <span class="o">=&gt;</span> <span class="nc">Future</span><span class="o">[</span><span class="kt">Unit</span><span class="o">])</span>
+        <span class="o">(</span><span class="n">tests</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[(</span><span class="kt">I</span>, <span class="kt">R</span><span class="o">)]</span>
+      <span class="o">)</span><span class="k">:</span> <span class="kt">Uses</span><span class="o">[</span><span class="kt">R</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span> <span class="o">(</span><span class="n">r</span><span class="o">,</span> <span class="n">sc</span><span class="o">)</span> <span class="k">=&gt;</span>
+        <span class="n">init</span><span class="o">().</span><span class="n">flatMap</span> <span class="o">{</span> <span class="n">i</span> <span class="k">=&gt;</span>
+          <span class="n">blockingTransform</span><span class="o">(</span>
+            <span class="n">tests</span><span class="o">((</span><span class="n">i</span><span class="o">,</span> <span class="n">r</span><span class="o">),</span> <span class="n">sc</span><span class="o">)</span>
+          <span class="o">)(</span><span class="n">r</span> <span class="k">=&gt;</span>
+            <span class="n">cleanup</span><span class="o">(</span><span class="n">i</span><span class="o">).</span><span class="n">flatMap</span><span class="o">(</span><span class="k">_</span> <span class="k">=&gt;</span>
+              <span class="n">fromTry</span><span class="o">(</span><span class="n">r</span><span class="o">)</span>
+            <span class="o">)(</span><span class="n">ec</span><span class="o">)</span>
+          <span class="o">)(</span><span class="n">ec</span><span class="o">)</span>
+        <span class="o">}(</span><span class="n">ec</span><span class="o">)</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+</section></div></div></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/testz/highlight/highlight.pack.js"></script><script>hljs.configure({
+languages:['scala','java','bash']
+});
+hljs.initHighlighting();
+             </script><script>((window.gitter = {}).chat = {}).options = {
+room: 'scalaz/testz'};</script><script src="https://sidecar.gitter.im/dist/sidecar.v1.js"></script><script src="/testz/js/main.js"></script></body></html>
