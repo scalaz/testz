@@ -30,34 +30,55 @@
 
 package testz
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.Duration
-import scala.concurrent.ExecutionContext.global
+import runner.TestOutput
 
-import testz.runner._
+import scala.concurrent.{Await, ExecutionContext, Future}
+import ExecutionContext.global
+import scala.concurrent.duration.Duration
 
 object Main {
-  val harness: Harness[PureHarness.Uses[Unit]] =
-    PureHarness.toHarness(
-      PureHarness.make(
-        (ls, tr) => Runner.printStrs(Runner.printTest(ls, tr), print)
-      )
+  def main(args: Array[String]): Unit = {
+    // The "default" way to print test results:
+    // use `runner.printTest` for formatting and
+    // `runner.printStrs` with `Console.print`
+    // for printing.
+    val printer: (Result, List[String]) => Unit =
+      (tr, ls) => runner.printStrs(runner.printTest(tr, ls), Console.print)
+
+    // Not always a good choice; parallelism slows down heavily contended machines, for example.
+    val ec = global
+
+    val harness =
+      PureHarness.makeFromPrinter(printer)
+
+    val futureHarness =
+      FutureHarness.makeFromPrinterEff(printer)(global)
+
+    def unitTests = TestOutput.combineAll1(
+      ExtrasSuite.tests(harness)((), List("Extras tests")),
+      PropertySuite.tests(harness)((), List("Property tests")),
+      StdlibSuite.tests(harness, ec)((), List("Stdlib tests")),
+      CoreSuite.tests(harness)((), List("Core tests")),
+      ScalazSuite.tests(harness)((), List("Scalaz tests")),
     )
 
-  def tests[T](harness: Harness[T]): List[(String, T)] = List(
-    ("Extras tests", ExtrasSuite.tests(harness)),
-    ("Stdlib tests", StdlibSuite.tests(harness)),
-    ("Property tests", PropertySuite.tests(harness)),
-  )
-
-  def suites(harness: Harness[PureHarness.Uses[Unit]]): List[() => Future[TestOutput]] =
-    tests(harness).map {
-      case (name, suite) =>
-        () => Future.successful(suite((), List(name)))
+    def propertyTests = {
+      PropertySuite.tests(harness)((), List("Property tests"))
     }
 
-  def main(args: Array[String]): Unit = {
-    val result = Await.result(Runner(suites(harness), global), Duration.Inf)
+    def runnerTests =
+      RunnerSuite.tests(futureHarness, ec)((), List("Runner tests"))
+
+    // Evaluate tests before the runner expects,
+    // for parallelism.
+    val testOutputs: List[() => Future[TestOutput]] = List(
+      Future(unitTests)(ec),
+      Future(propertyTests)(ec),
+      Future(runnerTests)(ec).flatMap(x => x)(ec)
+    ).map(s => () => s)
+
+    val runSuites = runner(testOutputs, Console.print(_), global)
+    val result = Await.result(runSuites, Duration.Inf)
 
     if (result.failed) throw new Exception("some tests failed")
   }

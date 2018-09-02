@@ -1,39 +1,28 @@
-/*
- * Copyright (c) 2018, Edmund Noble
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- *    list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its contributors
- *    may be used to endorse or promote products derived from this software without
- *    specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
+---
+layout: docs
+title: testz-stdlib
+---
 
-package testz
+# {{ page.title }}
 
-import runner.TestOutput
+The `testz-stdlib` module provides basic testz harnesses using nothing more
+than the standard library, `testz-core`, `testz-resource`, and `testz-util`.
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.util.Try
+It provides two harnesses: `PureHarness` and `FutureHarness`. Both are built to be
+used with testz-runner, despite there being no dependency on testz-runner.
+
+`PureHarness` is a harness type for tests which return `testz.Result`.
+
+Its `Uses[R]` type alias is the implementation type of `PureHarness`;
+a test group depending on a resource `R` in `PureHarness` is an
+`(R, List[String]) => TestOutput`; a function which, given the resource
+it needs and the current test group name (and all labels attached to it)
+produces a `TestOutput`, which describes both how to print the results
+of the group and whether any tests failed.
+
+```tut:silent
+import testz._
+import testz.runner.TestOutput
 
 object PureHarness {
   type Uses[R] = (R, List[String]) => TestOutput
@@ -90,37 +79,25 @@ object PureHarness {
     }
 
 }
+```
+
+`FutureHarness` is a harness type for tests which return `Future[testz.Result]`.
+
+It's a lot more verbose than `PureHarness`, mostly because I'm careful with
+`ExecutionContext` and because there are several generic utilities missing from
+`Future` that are very useful in implementing the harness in a clear and concise
+way.
+
+```tut:silent
+import testz._
+import testz.runner.TestOutput
+
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.util.Try
 
 object FutureHarness {
 
   type Uses[R] = (R, List[String]) => Future[TestOutput]
-
-  def makeFromPrinter(
-    output: (Result, List[String]) => Unit
-  )(
-    ec: ExecutionContext
-  ): Harness[Uses[Unit]] =
-    ResourceHarness.toHarness(makeFromPrinterR(output)(ec))
-
-  def makeFromPrinterR(
-    output: (Result, List[String]) => Unit
-  )(
-    ec: ExecutionContext
-  ): ResourceHarness[Uses] = {
-    val self = makeFromPrinterEffR(output)(ec)
-    EffectResourceHarness.toResourceHarness(
-      new EffectResourceHarness[λ[X => X], Uses] {
-        def test[R](name: String)(assertions: R => Result): Uses[R] =
-          self.test[R](name)(assertions.andThen(Future.successful))
-        def namedSection[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] =
-          self.namedSection[R](name)(test1, tests: _*)
-        def section[R](test1: Uses[R], tests: Uses[R]*): Uses[R] =
-          self.section[R](test1, tests: _*)
-        def bracket[R, I](init: () => I)(cleanup: I => Unit)(tests: Uses[(I, R)]): Uses[R] =
-          self.bracket(() => Future.successful(init()))(_ => Future.unit)(tests)
-      }
-    )
-  }
 
   def makeFromPrinterEff(
     output: (Result, List[String]) => Unit
@@ -138,11 +115,8 @@ object FutureHarness {
       // note that `assertions(r)` is *already computed* before we run
       // the `() => Unit`.
       def test[R](name: String)(assertions: R => Future[Result]): Uses[R] =
-        (r, sc) => assertions(r).transform {
-          case scala.util.Success(result) =>
-            scala.util.Success(new TestOutput(result ne Succeed(), () => outputTest(result, name :: sc)))
-          case scala.util.Failure(_) =>
-            scala.util.Success(new TestOutput(true, () => outputTest(Fail(), name :: sc)))
+        (r, sc) => assertions(r).map { result =>
+          new TestOutput(result ne Succeed(), () => outputTest(result, name :: sc))
         }(ec)
 
       def namedSection[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
@@ -200,3 +174,4 @@ object FutureHarness {
       }
     }
 }
+```

@@ -30,19 +30,63 @@
 
 package testz
 
-import scalaz._, Scalaz._
-import z._, z.streaming._
-
-object PropertySuite {
+object CoreSuite {
   def tests[T](harness: Harness[T]): T = {
     import harness._
-    namedSection("int ranges")(
-      test("exhaustiveS") { () =>
-        val actualErrors = exhaustiveS[Id, Int](1, 2, 3, 4, 5, 6)(i =>
-          assert(i === 3)
-        )
-        assert(actualErrors === Fail())
-      },
+    section(
+      namedSection("assert")(
+        test("success") { () =>
+          if (assert(true) eq Succeed()) Succeed()
+          else Fail()
+        },
+        test("failure") { () =>
+          if (assert(false) eq Fail()) Succeed()
+          else Fail()
+        }
+      ),
+      namedSection("result methods")(
+        test("Result.combine") { () =>
+          val data = List(
+            (Succeed(), Succeed(), Succeed()),
+            (Succeed(), Fail(), Fail()),
+            (Fail(), Succeed(), Fail()),
+            (Fail(), Fail(), Fail()),
+          )
+          data.foldLeft(Succeed()) {
+            case (r, (i1, i2, o)) =>
+              if (r == Fail())
+                r
+              else
+                assert(Result.combine(i1, i2) == o)
+          }
+        },
+      ),
+      namedSection("Result#equals")(
+        test("agrees with eq") { () =>
+          val data = List(
+            (Succeed(), Succeed()),
+            (Succeed(), Fail()),
+            (Fail(), Succeed()),
+            (Fail(), Fail()),
+          )
+          data.map {
+            case (i1, i2) =>
+              assert((i1 eq i2) == (i1 == i2))
+          }.reduce(Result.combine)
+        },
+        test("exhaustive") { () =>
+          val data = List(
+            (Succeed(), Succeed(), true),
+            (Succeed(), Fail(), false),
+            (Fail(), Succeed(), false),
+            (Fail(), Fail(), true),
+          )
+          data.map {
+            case (i1, i2, o) =>
+              assert((i1 == i2) == o)
+          }.reduce(Result.combine)
+        },
+      )
     )
   }
 }

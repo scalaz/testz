@@ -30,5 +30,5 @@
 
 package object testz {
   def assert(b: Boolean): Result =
-    if (b) Succeed else Fail.noMessage
+    if (b) Succeed() else Fail()
 }

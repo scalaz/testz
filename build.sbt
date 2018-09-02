@@ -17,7 +17,7 @@ publishTo in ThisBuild := {
     Some("releases" at nexus + "service/local/staging/deploy/maven2")
 }
 
-lazy val sonataCredentials = for {
+val sonataCredentials = for {
   username <- sys.env.get("SONATYPE_USERNAME")
   password <- sys.env.get("SONATYPE_PASSWORD")
 } yield Credentials("Sonatype Nexus Repository Manager", "oss.sonatype.org", username, password)
@@ -78,7 +78,11 @@ val standardSettings = Seq(
     "-Ywarn-unused:params",              // Warn if a value parameter is unused.
     "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
     "-Ywarn-unused:privates",            // Warn if a private member is unused.
-    "-Ywarn-value-discard"               // Warn when non-Unit expression results are unused.
+    "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
+    "-opt-warnings:_",                   // Warn if a method call marked @inline cannot be inlined
+    "-opt:l:inline",                     // Enable the optimizer
+    "-opt-inline-from:<sources>",
+    "-Yopt-inline-heuristics:at-inline-annotated",
   ),
   scalacOptions in (Compile, doc) ++= Seq("-groups", "-implicits"),
   wartremoverWarnings in (Compile, compile) --= Seq(
@@ -89,22 +93,7 @@ val standardSettings = Seq(
   headerLicense := Some(HeaderLicense.BSD3Clause("2018", "Edmund Noble")),
   resolvers += Resolver.sonatypeRepo("releases"),
 
-  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"),
-
-  libraryDependencies ++= Seq(
-  ),
-
-  fork in run := true,
-  javaOptions := Seq(
-    // we need discipline here.
-    "-Xms1G",
-    "-Xmx1G",
-
-    // testz tests being single-threaded and careful about liveset size
-    // makes concurrent GC an incredibly good choice.
-    "-XX:+UseConcMarkSweepGC",
-    "-XX:MaxInlineLevel=35"
-  ))
+  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"))
 
 val publishSettings = Seq(
   organizationHomepage := None,
@@ -142,8 +131,25 @@ val util = crossProject(JSPlatform, JVMPlatform).in(file("util"))
 val utilJVM = util.jvm
 val utilJS = util.js
 
-val stdlib = crossProject(JSPlatform, JVMPlatform).in(file("stdlib"))
+val resource = crossProject(JSPlatform, JVMPlatform).in(file("resource"))
   .dependsOn(core, util)
+  .settings(name := "testz-resource")
+  .settings(standardSettings ++ publishSettings)
+
+val resourceJVM = resource.jvm
+val resourceJS = resource.js
+
+val runner = crossProject(JSPlatform, JVMPlatform).in(file("runner"))
+  .dependsOn(core, util)
+  .settings(name := "testz-runner")
+  .settings(standardSettings ++ publishSettings)
+  .enablePlugins(AutomateHeaderPlugin)
+
+val runnerJVM = runner.jvm
+val runnerJS = runner.js
+
+val stdlib = crossProject(JSPlatform, JVMPlatform).in(file("stdlib"))
+  .dependsOn(core, resource, runner, util)
   .settings(name := "testz-stdlib")
   .settings(standardSettings ++ publishSettings)
   .settings(
@@ -157,15 +163,6 @@ val stdlib = crossProject(JSPlatform, JVMPlatform).in(file("stdlib"))
 val stdlibJVM = stdlib.jvm
 val stdlibJS = stdlib.js
 
-val runner = crossProject(JSPlatform, JVMPlatform).in(file("runner"))
-  .dependsOn(core, util)
-  .settings(name := "testz-runner")
-  .settings(standardSettings ++ publishSettings)
-  .enablePlugins(AutomateHeaderPlugin)
-
-val runnerJVM = runner.jvm
-val runnerJS = runner.js
-
 val scalatest = crossProject(JSPlatform, JVMPlatform).in(file("scalatest"))
   .dependsOn(core)
   .settings(name := "testz-scalatest")
@@ -176,7 +173,7 @@ val scalatestJVM = scalatest.jvm
 val scalatestJS = scalatest.js
 
 val scalaz = project.in(file("scalaz"))
-  .dependsOn(coreJVM)
+  .dependsOn(coreJVM, resourceJVM, runnerJVM)
   .settings(name := "testz-scalaz")
   .settings(standardSettings ++ publishSettings)
   .settings(
@@ -202,7 +199,7 @@ val specs2JVM = specs2.jvm
 val specs2JS = specs2.js
 
 val extras = crossProject(JSPlatform, JVMPlatform).in(file("extras"))
-  .dependsOn(core, stdlib)
+  .dependsOn(core, resource)
   .settings(name := "testz-extras")
   .settings(standardSettings ++ publishSettings)
   .enablePlugins(AutomateHeaderPlugin)
@@ -211,15 +208,15 @@ val extras = crossProject(JSPlatform, JVMPlatform).in(file("extras"))
 val extrasJVM = extras.jvm
 val extrasJS = extras.js
 
-lazy val tests = project.in(file("tests"))
+val tests = project.in(file("tests"))
   .settings(name := "testz-tests")
-  .dependsOn(coreJVM, extrasJVM, runnerJVM, scalatestJVM, scalaz, specs2JVM, stdlibJVM)
+  .dependsOn(coreJVM, extrasJVM, resourceJVM, runnerJVM, scalatestJVM, scalaz, specs2JVM, stdlibJVM)
   .settings(standardSettings ++ publishSettings)
   .settings(libraryDependencies ++= Seq(
     "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % Test))
   .enablePlugins(AutomateHeaderPlugin)
 
-lazy val benchmarks = project.in(file("benchmarks"))
+val benchmarks = project.in(file("benchmarks"))
   .dependsOn(coreJVM, runnerJVM, scalatestJVM, scalaz, stdlibJVM, specs2JVM)
   .settings(name := "testz-benchmarks")
   .settings(skip in publish := true)
@@ -230,7 +227,7 @@ lazy val benchmarks = project.in(file("benchmarks"))
 /** A project just for the console.
   * Applies only the settings necessary for that purpose.
   */
-lazy val repl = project
+val repl = project
   .dependsOn(tests % "compile->test")
   .dependsOn(benchmarks)
   .settings(standardSettings)
@@ -244,15 +241,16 @@ lazy val repl = project
       |import testz.benchmarks._
       |import testz.extras._
       |import testz.runner._
-      |import testz.property._
-      |import testz.z._
+      |import testz.z._, z.streaming._
       |import scalaz._, scalaz.Scalaz._
     """.stripMargin.trim
   )
 
-lazy val docs = project
+val docs = project
   .settings(name := "testz-docs")
-  .dependsOn(coreJVM, extrasJVM, runnerJVM, scalatestJVM, scalaz, specs2JVM, stdlibJVM)
+  .dependsOn(
+    benchmarks, coreJVM, extrasJVM, runnerJVM, scalatestJVM, scalaz, specs2JVM, stdlibJVM, utilJVM
+  )
   .settings(standardSettings)
   .settings(skip in publish := true)
   .enablePlugins(MicrositesPlugin)
@@ -267,10 +265,10 @@ lazy val docs = project
     micrositeGithubOwner      := "edmundnoble",
     micrositeGithubRepo       := "testz",
     micrositeBaseUrl          := "/testz",
-    micrositeDocumentationUrl := "/testz/docs/01-Getting-Started.html",
+    micrositeDocumentationUrl := "/testz/docs/01-first-example.html",
     micrositeHighlightTheme   := "color-brewer")
 
-lazy val root = Project("root", file("."))
+val root = Project("root", file("."))
   .settings(name := "testz")
   .settings(standardSettings)
   .settings(skip in publish := true)
@@ -281,6 +279,7 @@ lazy val root = Project("root", file("."))
     docs,
     extrasJVM, extrasJS,
     repl,
+    resourceJVM, resourceJS,
     runnerJVM, runnerJS,
     scalatestJVM, scalatestJS,
     scalaz,

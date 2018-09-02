@@ -1,46 +1,52 @@
 ---
 layout: docs
-title: A First Example
+title: First Example
 ---
 
 # {{ page.title }}
 
-Let’s start with a simple version of a pure test suite, using the
-most basic test harness type provided. We'll be using `testz-core`,
-`testz-runner`, and `testz-stdlib`.
+Let’s start with a simple, pure test suite, using the
+most basic harness type provided. We'll be using `testz-core`
+and `testz-stdlib`, but the actual test code will only use `testz-core`.
 
-It's our harness provided in `testz.PureHarness`.
+Obligatory imports:
 
 ```tut:silent
 import testz.{Harness, PureHarness, assert}
-import scala.concurrent.ExecutionContext.global
+```
 
+And here's the meat.
+
+```tut:silent
 final class MathTests {
   def tests[T](harness: Harness[T]): T = {
     import harness._
-    section("math must")(
+    section(
       test("say 1 + 1 == 2") { () =>
         assert(1 + 1 == 2)
+      },
+      test("say 2 * 2 == 4") { () =>
+        assert(2 * 2 == 4)
       }
     )
   }
 }
 ```
 
-To run this type of test suite using the default testz runner,
-just call `.run` with an `ExecutionContext`; the global one is usually fine.
+To run this test suite, pass it the `Harness` it wants.
+First to do that we have to construct the `Harness`, using
+`PureHarness.makeFromPrinter`; `makeFromPrinter` expects
+an impure function which can be used to print test results
+(`(List[String], Result) => Unit`), and that's what we give it.
 
-Note: By default, using the runner will not use the `ExecutionContext`
-      unless you use it in your tests - suites are not run concurrently,
-      we just use it to `flatMap` asynchronous suites.
-
-All suites are run synchronously if possible, but will use the
-`ExecutionContext` if any tests inside use asynchrony.
+It will return a `T`, in this case `PureHarness.Uses[Unit]`,
+which is `(Unit, List[String]) => TestOutput`.
+`TestOutput` has a method `print()` which you can use to see the output.
 
 ```tut:book
 val harness: Harness[PureHarness.Uses[Unit]] =
-  PureHarness.toHarness(
-    PureHarness.make((name, result) => println(s"name: result"))
+  PureHarness.makeFromPrinter((result, name) =>
+    println(s"${name.reverse.mkString("[\"", "\"->\"", "\"]:")} $result")
   )
 (new MathTests()).tests(harness)((), Nil).print()
 ```
@@ -51,7 +57,11 @@ I went through a lot there; let's dissect that.
 import testz.{Harness, PureHarness, assert}
 ```
 
-Here I import `Harness[_]`, the simplest type of test harnesses..
+Here I import `Harness`, the simplest type of test harnesses,
+`PureHarness`, an actual test harness implementation,
+and the `assert` function.
+
+`PureHarness` is from testz-stdlib, and the others are from testz-core.
 
 Conventionally, test suites are written with an abstract method
 that takes some type of harness as a parameter and returns
@@ -93,7 +103,7 @@ Note: The type returned by `tests` is abstract,
       test harness types.
 
 ```scala
-  import harness._
+import harness._
 ```
 
 We also import all of the methods from `harness`;
@@ -101,12 +111,15 @@ we'll use `section` and `test`, the test registration
 primitives in `Harness` which are included in all harness types.
 
 ```scala
-section("math must")(
+section(
 ```
 
 Declaring a test section. Takes varargs parameters, of type `T`.
 Returns a `T`. The only way other than `section` to get a `T`
 (when it's abstract) is `test`.
+
+You can also include a name with the `section` by calling
+`namedSection`, which accepts an additional parameter (`name: String`).
 
 ```scala
 test("say 1 + 1 == 2") { () =>
@@ -122,11 +135,20 @@ Note: `() =>` is actually needed to avoid computing test registrations
       adjacent to tests, this is something you can alter.
 
 ```scala
-assert(1 + 1 === 2)
+assert(1 + 1 == 2)
 ```
 
-Here's the only assertion we've got.
-It'll give you a `TestResult` which is a `Failure` if the two
-arguments aren't equal using `===`, and otherwise a `Success`.
+Here's the assertion inside.
+It'll give you a `Result` which is `Fail()` if the two
+arguments aren't equal using `===`, and otherwise `Succeed()`.
+
+The next assertion, all together:
+
+```scala
+test("say 2 * 2 == 4") { () =>
+  assert(2 * 2 == 4)
+}
+```
+
 
 And we're done.
