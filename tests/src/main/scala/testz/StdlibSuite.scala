@@ -121,6 +121,27 @@ object StdlibSuite {
             (outerRes == "List(1, 2)")
           )
         },
+        test("allocate") { () =>
+          var testOut = ""
+          var printOut = ""
+          val alloc: (Unit, List[String]) => TestOutput =
+            PureHarness.makeFromPrinterR((_, _) => ()).allocate[Unit, List[Int]](() => List(1, 2)) {
+              (res: (List[Int], Unit), ls: List[String]) =>
+                testOut = res._1.toString + " " + ls
+                new TestOutput(false, { () => printOut = "printed" })
+            }
+          val result = alloc((), List("scope"))
+          val ranEarly = (testOut != "")
+          val notPrintedEarly = (printOut == "")
+          result.print()
+          assert(
+            ranEarly &&
+            notPrintedEarly &&
+            (printOut == "printed") &&
+            (testOut == "List(1, 2) List(scope)") &&
+            !result.failed
+          )
+        },
       ),
       namedSection("FutureHarness")(
         test("section") { () =>
@@ -165,6 +186,62 @@ object StdlibSuite {
             notPrintedEarly &&
             (x == " - Succeed - List(test name, outer)") &&
             (outerRes == "List(1, 2)")
+          )
+        },
+        test("allocate") { () =>
+          var stages: List[String] = Nil
+          var testOut = ""
+          val alloc: (Unit, List[String]) => TestOutput =
+            (u, ls) => Await.result(
+              FutureHarness.makeFromPrinterR((_, _) => ())(ec).allocate[Unit, List[Int]] { () =>
+                stages ::= "alloc"
+                List(1, 2)
+              } {
+                (res: (List[Int], Unit), ls: List[String]) =>
+                  stages ::= "test"
+                  testOut = res._1.toString + " " + ls
+                  Future.successful(new TestOutput(false, { () => stages ::= "print" }))
+              }(u, ls), Duration.Inf
+            )
+          val result = alloc((), List("scope"))
+          val ranEarly = (testOut != "") || (stages != Nil)
+          val notPrintedEarly = !stages.contains("print")
+          result.print()
+          assert(
+            ranEarly &&
+            notPrintedEarly &&
+            (stages == List("print", "test", "alloc")) &&
+            (testOut == "List(1, 2) List(scope)") &&
+            !result.failed
+          )
+        },
+        test("bracket") { () =>
+          var stages: List[String] = Nil
+          var testOut = ""
+          val bracket: (Unit, List[String]) => TestOutput =
+            (u, ls) => Await.result(
+              FutureHarness.makeFromPrinterEffR((_, _) => ())(ec).bracket[Unit, List[Int]] { () =>
+                stages ::= "alloc"
+                Future(List(1, 2))(ec)
+              } {
+                li => Future { stages ::= "cleanup" }(ec)
+              } {
+                (res: (List[Int], Unit), ls: List[String]) =>
+                  stages ::= "test"
+                  testOut = res._1.toString + " " + ls
+                  Future(new TestOutput(false, { () => stages ::= "print" }))(ec)
+              }(u, ls), Duration.Inf
+            )
+          val result = bracket((), List("scope"))
+          val ranEarly = (testOut != "") || (stages != Nil)
+          val notPrintedEarly = !stages.contains("print")
+          result.print()
+          assert(
+            ranEarly &&
+            notPrintedEarly &&
+            (stages == List("print", "cleanup", "test", "alloc")) &&
+            (testOut == "List(1, 2) List(scope)") &&
+            !result.failed
           )
         },
       )
