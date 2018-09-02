@@ -6,6 +6,6 @@ docs: true
 collections:
   tut:
     output: true
-version: 0.0.5
+version: 0.0.4
 org: Scalaz
 markdown: kramdown
