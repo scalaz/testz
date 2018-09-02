@@ -109,7 +109,7 @@ object z {
         (tests: Uses[(I, R)]
       ): Uses[R] = (r, sc) =>
         init().flatMap {
-          i => tests((i, r), sc).attempt.flatMap(p => p.fold(e => cleanup(i).flatMap(_ => Task.fail(e)), a => cleanup(i).as(a)))
+          i => tests((i, r), sc).flatMap(a => cleanup(i).as(a))
         }
     }
   }

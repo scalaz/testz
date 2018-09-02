@@ -138,8 +138,11 @@ object FutureHarness {
       // note that `assertions(r)` is *already computed* before we run
       // the `() => Unit`.
       def test[R](name: String)(assertions: R => Future[Result]): Uses[R] =
-        (r, sc) => assertions(r).map { result =>
-          new TestOutput(result ne Succeed(), () => outputTest(result, name :: sc))
+        (r, sc) => assertions(r).transform {
+          case scala.util.Success(result) =>
+            scala.util.Success(new TestOutput(result ne Succeed(), () => outputTest(result, name :: sc)))
+          case scala.util.Failure(_) =>
+            scala.util.Success(new TestOutput(true, () => outputTest(Fail(), name :: sc)))
         }(ec)
 
       def namedSection[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
