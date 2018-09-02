@@ -119,7 +119,7 @@ object runner {
     case _ =>
   }
 
-  def intersperse(strs: ::[String], delim: String): ::[String] = {
+  def intersperseReverse(strs: ::[String], delim: String): ::[String] = {
     if (strs.tail eq Nil) {
       strs
     } else {
@@ -141,7 +141,7 @@ object runner {
   // (if you use this function)
   def printTest(out: Result, scope: List[String]): List[String] = out match {
     case _: Succeed => Nil
-    case _          => intersperse(new ::("failed\n", scope), "->")
+    case _          => intersperseReverse(new ::("failed\n", scope), "->")
   }
 
 }

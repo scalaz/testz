@@ -33,6 +33,7 @@ package testz
 import runner.TestOutput
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.collection.mutable.ListBuffer
 
 object RunnerSuite {
   def tests[T](harness: EffectHarness[Future, T], ec: ExecutionContext): T = {
@@ -153,6 +154,67 @@ object RunnerSuite {
               test(List(false, true, true, true, true), true)
             ).reduce(Result.combine)
           )
+        },
+      ),
+      namedSection("printing utilities")(
+        test("printStrs") { () =>
+          val strs = List(
+            List(),
+            List("a", "b", "c"),
+          )
+          Future.successful(strs.map { l =>
+            val ctr = new ListBuffer[String]
+            runner.printStrs(l, { s => val _ = ctr += s })
+            assert(ctr.result() == l)
+          }.reduce(Result.combine))
+        },
+        test("printStrss") { () =>
+          val strss = List(
+            (Nil, Nil),
+            (List(Nil), Nil),
+            (List(Nil, Nil), Nil),
+            (List(List("a", "b", "c"), Nil), List(List("a", "b", "c"), List("\n"))),
+            (List(Nil, List("a", "b", "c")), List(List("a", "b", "c"), List("\n"))),
+            (List(List("a", "b", "c"), List("d", "e", "f")),
+              List(List("a", "b", "c"), List("\n"), List("d", "e", "f"), List("\n")))
+          )
+          Future.successful(strss.map {
+            case (i, o) =>
+              val ctr = new ListBuffer[List[String]]
+              runner.printStrss(i, { l => val _ = ctr += l })
+              assert(ctr.result() == o)
+          }.reduce(Result.combine))
+        },
+        test("intersperseReverse") { () =>
+          val strs = List(
+            (List("a"), List("a")),
+            (List("a", "b"), List("b", "\n", "a")),
+            (List("a", "b", "c"), List("c", "\n", "b", "\n", "a")),
+          )
+
+          Future.successful(strs.map {
+            case (i, o) =>
+              assert(
+                runner.intersperseReverse(i.asInstanceOf[::[String]], "\n") == o
+              )
+          }.reduce(Result.combine))
+        },
+        test("printTest") { () =>
+          val results = List(Succeed(), Fail())
+          val data = List(
+            (Nil, List("failed\n")),
+            (List("first"), List("first", "->", "failed\n")),
+            (List("first", "second"), List("second", "->", "first", "->", "failed\n")),
+          )
+          Future.successful((for {
+            r <- results
+            d <- data
+          } yield
+            assert(
+              runner.printTest(Fail(), d._1) == d._2 &&
+              runner.printTest(Succeed(), d._1) == Nil
+            )
+          ).reduce(Result.combine))
         },
       )
     )
