@@ -1,0 +1,107 @@
+<html><head><title>testz: testz-util</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Edmund Noble" /><meta name="description" content="Purely functional testing library for Scala" /><meta name="og:image" content="/testz/img/poster.png" /><meta name="og:title" content="testz: testz-util" /><meta name="og:site_name" content="testz" /><meta name="og:url" content="" /><meta name="og:type" content="website" /><meta name="og:description" content="Purely functional testing library for Scala" /><link rel="icon" type="image/png" href="/testz/img/favicon.png" /><meta name="twitter:title" content="testz: testz-util" /><meta name="twitter:image" content="img/poster.png" /><meta name="twitter:description" content="Purely functional testing library for Scala" /><meta name="twitter:card" content="summary_large_image" /><link rel="icon" type="image/png" sizes="16x16" href="/testz/img/favicon16x16.png" /><link rel="icon" type="image/png" sizes="24x24" href="/testz/img/favicon24x24.png" /><link rel="icon" type="image/png" sizes="32x32" href="/testz/img/favicon32x32.png" /><link rel="icon" type="image/png" sizes="48x48" href="/testz/img/favicon48x48.png" /><link rel="icon" type="image/png" sizes="57x57" href="/testz/img/favicon57x57.png" /><link rel="icon" type="image/png" sizes="60x60" href="/testz/img/favicon60x60.png" /><link rel="icon" type="image/png" sizes="64x64" href="/testz/img/favicon64x64.png" /><link rel="icon" type="image/png" sizes="70x70" href="/testz/img/favicon70x70.png" /><link rel="icon" type="image/png" sizes="72x72" href="/testz/img/favicon72x72.png" /><link rel="icon" type="image/png" sizes="76x76" href="/testz/img/favicon76x76.png" /><link rel="icon" type="image/png" sizes="96x96" href="/testz/img/favicon96x96.png" /><link rel="icon" type="image/png" sizes="114x114" href="/testz/img/favicon114x114.png" /><link rel="icon" type="image/png" sizes="120x120" href="/testz/img/favicon120x120.png" /><link rel="icon" type="image/png" sizes="128x128" href="/testz/img/favicon128x128.png" /><link rel="icon" type="image/png" sizes="144x144" href="/testz/img/favicon144x144.png" /><link rel="icon" type="image/png" sizes="150x150" href="/testz/img/favicon150x150.png" /><link rel="icon" type="image/png" sizes="152x152" href="/testz/img/favicon152x152.png" /><link rel="icon" type="image/png" sizes="196x196" href="/testz/img/favicon196x196.png" /><link rel="icon" type="image/png" sizes="310x310" href="/testz/img/favicon310x310.png" /><link rel="icon" type="image/png" sizes="310x150" href="/testz/img/favicon310x150.png" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="/testz/highlight/styles/color-brewer.css" /><link rel="stylesheet" href="/testz/css/style.css" /><link rel="stylesheet" href="/testz/css/palette.css" /><link rel="stylesheet" href="/testz/css/codemirror.css" /></head><body class="docs"><div id="wrapper"><div id="sidebar-wrapper"><ul id="sidebar" class="sidebar-nav"><li class="sidebar-brand"><a href="/testz/" class="brand"><div class="brand-wrapper"><span>testz</span></div></a></li><li><a href="/testz/docs/01-first-example.html" class="">First Example</a></li><li><a href="/testz/docs/02-core.html" class="">testz-core</a></li><li><a href="/testz/docs/03-resource.html" class="">testz-resource</a></li><li><a href="/testz/docs/04-stdlib.html" class="">testz-stdlib</a></li><li><a href="/testz/docs/05-scalaz.html" class="">testz-scalaz</a></li><li><a href="/testz/docs/06-specs2.html" class="">testz-specs2</a></li><li><a href="/testz/docs/07-scalatest.html" class="">testz-scalatest</a></li><li><a href="/testz/docs/08-runner.html" class="">testz-runner</a></li><li><a href="/testz/docs/09-performance.html" class="">Performance</a></li><li><a href="/testz/docs/10-tests.html" class=" active ">testz-util</a></li><li><a href="/testz/docs/11-util.html" class=" active ">testz-util</a></li><li><a href="/testz/css/palette.css" class=""></a></li><li><a href="/testz/css/style.css" class=""></a></li></ul></div><div id="page-content-wrapper"><div class="nav"><div class="container-fluid"><div class="row"><div class="col-lg-12"><div class="action-menu pull-left clearfix"><a href="#menu-toggle" id="menu-toggle"><i class="fa fa-bars" aria-hidden="true"></i></a></div><ul class="pull-right"><li id="gh-eyes-item" class="hidden-xs"><a href="https://github.com/scalaz/testz"><i class="fa fa-eye"></i><span>WATCH<span id="eyes" class="label label-default">--</span></span></a></li><li id="gh-stars-item" class="hidden-xs"><a href="https://github.com/scalaz/testz"><i class="fa fa-star-o"></i><span>STARS<span id="stars" class="label label-default">--</span></span></a></li><li><a href="#" onclick="shareSiteTwitter('testz Purely functional testing library for Scala');"><i class="fa fa-twitter"></i></a></li><li><a href="#" onclick="shareSiteFacebook('testz Purely functional testing library for Scala');"><i class="fa fa-facebook"></i></a></li><li><a href="#" onclick="shareSiteGoogle();"><i class="fa fa-google-plus"></i></a></li></ul></div></div></div></div><div id="content" data-github-owner="scalaz" data-github-repo="testz"><div class="content-wrapper"><section><h1 id="testz-util">testz-util</h1>
+
+<p>testz-util right now contains solely utilities for performance.
+They’re analogous to <code class="highlighter-rouge">akka.util.FastFuture</code>, in that most of what
+they do is avoid extra thread pool submissions for performance.</p>
+
+<p>All of the utilities are in <code class="highlighter-rouge">testz.futureUtil</code>.</p>
+
+<p>The rationale for this is:</p>
+<ol>
+  <li>As stated in <a href="./09-performance.html">Performance</a>, testz is mostly not JITted.
+Thread pool submissions are made especially expensive by this, though they’re
+already very expensive.</li>
+  <li>Parallelism grain size is COMPLETELY managed by the user in testz.
+The default of “grain for every <code class="highlighter-rouge">map</code> call” (and basically every other call
+on <code class="highlighter-rouge">Future</code>) is incorrect for testz, and probably for all code.</li>
+</ol>
+
+<p>Obligatory imports:</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">scala.concurrent.</span><span class="o">{</span><span class="nc">Future</span><span class="o">,</span> <span class="nc">ExecutionContext</span><span class="o">}</span>
+</code></pre></div></div>
+
+<p><code class="highlighter-rouge">map(fut)(f)(ec)</code> is like <code class="highlighter-rouge">fut.map(f)(ec)</code>, but if <code class="highlighter-rouge">fut</code> is already completed
+doesn’t submit to the thread pool.</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="k">def</span> <span class="n">map</span><span class="o">[</span><span class="kt">A</span>, <span class="kt">B</span><span class="o">](</span><span class="n">fut</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">A</span><span class="o">])(</span><span class="n">f</span><span class="k">:</span> <span class="kt">A</span> <span class="o">=&gt;</span> <span class="n">B</span><span class="o">)(</span><span class="n">ec</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">B</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">fut</span><span class="o">.</span><span class="n">isCompleted</span><span class="o">)</span> <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="n">f</span><span class="o">(</span><span class="n">fut</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">get</span><span class="o">.</span><span class="n">get</span><span class="o">))</span>
+    <span class="k">else</span> <span class="n">fut</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">f</span><span class="o">)(</span><span class="n">ec</span><span class="o">)</span>
+  <span class="o">}</span>
+</code></pre></div></div>
+
+<p>Differences between <code class="highlighter-rouge">orIterator(iterator)</code>
+and <code class="highlighter-rouge">Future.sequence(it.toList).map(_.exists(b =&gt; b))</code>:</p>
+
+<ul>
+  <li><code class="highlighter-rouge">orIterator</code> won’t call <code class="highlighter-rouge">next()</code> until the current
+<code class="highlighter-rouge">Future[Boolean]</code> has already returned: any effects in the iterator
+are executed in sequence, not in parallel.</li>
+  <li>any runs of synchronous <code class="highlighter-rouge">Future</code>s are traversed without
+thread pool submissions.</li>
+  <li>there is no list allocated.</li>
+</ul>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="k">def</span> <span class="n">orIterator</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">it</span><span class="k">:</span> <span class="kt">Iterator</span><span class="o">[</span><span class="kt">Future</span><span class="o">[</span><span class="kt">Boolean</span><span class="o">]])(</span><span class="n">ec</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Boolean</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+    <span class="k">def</span> <span class="n">outer</span><span class="o">(</span><span class="n">acc</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Boolean</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+      <span class="c1">// synchronous inner loop has to be tail-recursive to be stack-safe.
+</span>      <span class="nd">@scala</span><span class="o">.</span><span class="n">annotation</span><span class="o">.</span><span class="n">tailrec</span>
+      <span class="k">def</span> <span class="n">inner</span><span class="o">(</span><span class="n">acc</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Boolean</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">it</span><span class="o">.</span><span class="n">hasNext</span><span class="o">)</span> <span class="o">{</span>
+          <span class="k">val</span> <span class="n">ne</span> <span class="k">=</span> <span class="n">it</span><span class="o">.</span><span class="n">next</span>
+          <span class="k">if</span> <span class="o">(</span><span class="n">ne</span><span class="o">.</span><span class="n">isCompleted</span><span class="o">)</span> <span class="o">{</span>
+            <span class="n">inner</span><span class="o">(</span><span class="n">acc</span> <span class="o">||</span> <span class="n">ne</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">get</span><span class="o">.</span><span class="n">get</span><span class="o">)</span>
+          <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+            <span class="n">ne</span><span class="o">.</span><span class="n">flatMap</span><span class="o">(</span><span class="n">b</span> <span class="k">=&gt;</span> <span class="n">outer</span><span class="o">(</span><span class="n">acc</span> <span class="o">||</span> <span class="n">b</span><span class="o">))(</span><span class="n">ec</span><span class="o">)</span>
+          <span class="o">}</span>
+        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+          <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="n">acc</span><span class="o">)</span>
+        <span class="o">}</span>
+      <span class="o">}</span>
+      <span class="n">inner</span><span class="o">(</span><span class="n">acc</span><span class="o">)</span>
+    <span class="o">}</span>
+    <span class="n">outer</span><span class="o">(</span><span class="kc">false</span><span class="o">)</span>
+  <span class="o">}</span>
+</code></pre></div></div>
+
+<p>Differences between <code class="highlighter-rouge">collectIterator(it)</code>
+and <code class="highlighter-rouge">Future.sequence(it.toList)</code>:</p>
+
+<ul>
+  <li><code class="highlighter-rouge">collectIterator</code> won’t call <code class="highlighter-rouge">next()</code> until the current <code class="highlighter-rouge">Future[A]</code> has
+already returned: any effects in the iterator are executed in sequence,
+not in parallel.</li>
+  <li>any runs of synchronous <code class="highlighter-rouge">Future</code>s are traversed without thread pool
+submissions,</li>
+  <li>the input list is not allocated.</li>
+</ul>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="n">collectIterator</span><span class="o">[</span><span class="kt">A</span><span class="o">](</span><span class="n">it</span><span class="k">:</span> <span class="kt">Iterator</span><span class="o">[</span><span class="kt">Future</span><span class="o">[</span><span class="kt">A</span><span class="o">]])(</span><span class="n">ec</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">List</span><span class="o">[</span><span class="kt">A</span><span class="o">]]</span> <span class="k">=</span> <span class="o">{</span>
+  <span class="k">def</span> <span class="n">outer</span><span class="o">(</span><span class="n">acc</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">A</span><span class="o">])</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">List</span><span class="o">[</span><span class="kt">A</span><span class="o">]]</span> <span class="k">=</span> <span class="o">{</span>
+    <span class="c1">// synchronous inner loop has to be tail-recursive to be stack-safe.
+</span>    <span class="nd">@scala</span><span class="o">.</span><span class="n">annotation</span><span class="o">.</span><span class="n">tailrec</span>
+    <span class="k">def</span> <span class="n">inner</span><span class="o">(</span><span class="n">acc</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">A</span><span class="o">])</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">List</span><span class="o">[</span><span class="kt">A</span><span class="o">]]</span> <span class="k">=</span> <span class="o">{</span>
+      <span class="k">if</span> <span class="o">(</span><span class="n">it</span><span class="o">.</span><span class="n">hasNext</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">val</span> <span class="n">ne</span> <span class="k">=</span> <span class="n">it</span><span class="o">.</span><span class="n">next</span>
+        <span class="k">if</span> <span class="o">(</span><span class="n">ne</span><span class="o">.</span><span class="n">isCompleted</span><span class="o">)</span> <span class="o">{</span>
+          <span class="k">val</span> <span class="n">newFun</span> <span class="k">=</span> <span class="n">ne</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">get</span><span class="o">.</span><span class="n">get</span>
+          <span class="n">inner</span><span class="o">(</span><span class="n">newFun</span> <span class="o">::</span> <span class="n">acc</span><span class="o">)</span>
+        <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+          <span class="n">ne</span><span class="o">.</span><span class="n">flatMap</span><span class="o">(</span><span class="n">c</span> <span class="k">=&gt;</span>
+            <span class="n">outer</span><span class="o">(</span><span class="n">c</span> <span class="o">::</span> <span class="n">acc</span><span class="o">)</span>
+          <span class="o">)(</span><span class="n">ec</span><span class="o">)</span>
+        <span class="o">}</span>
+      <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+        <span class="nc">Future</span><span class="o">.</span><span class="n">successful</span><span class="o">(</span><span class="n">acc</span><span class="o">)</span>
+      <span class="o">}</span>
+    <span class="o">}</span>
+    <span class="n">inner</span><span class="o">(</span><span class="n">acc</span><span class="o">)</span>
+  <span class="o">}</span>
+  <span class="n">map</span><span class="o">(</span><span class="n">outer</span><span class="o">(</span><span class="nc">Nil</span><span class="o">))(</span><span class="k">_</span><span class="o">.</span><span class="n">reverse</span><span class="o">)(</span><span class="n">ec</span><span class="o">)</span>
+<span class="o">}</span>
+</code></pre></div></div>
+</section></div></div></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/testz/highlight/highlight.pack.js"></script><script>hljs.configure({
+languages:['scala','java','bash']
+});
+hljs.initHighlighting();
+             </script><script>((window.gitter = {}).chat = {}).options = {
+room: 'scalaz/testz'};</script><script src="https://sidecar.gitter.im/dist/sidecar.v1.js"></script><script src="/testz/js/main.js"></script></body></html>
