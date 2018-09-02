@@ -29,7 +29,7 @@ For the most basic, zero-dependency test harnesses
 ```scala
 libraryDependencies += "org.scalaz" %% "testz-stdlib" % "0.0.5"
 ```
-:
+
 For a way to run testz test suites
 (see [here](./docs/07-runner.html) for details):
 
