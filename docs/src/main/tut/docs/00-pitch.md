@@ -1,4 +1,9 @@
-## Pitch
+---
+layout: docs
+title: Pitch
+---
+
+# {{ page.title }}
 
 1. testz was designed as a reaction against the current state of tests in Scala; if you're averse to
    tech shit-talking, stop reading now, but keep in mind that without other libraries I would have
