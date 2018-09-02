@@ -34,13 +34,6 @@ import scalaz._, Scalaz._
 import z._, z.streaming._
 
 object PropertySuite {
-  // TODO: perhaps there's a better way to test these than math.
-  val testData = Unfold[Id, Int]((1 to 6): _*).flatMap {
-    i =>
-      val n = i :: (i * 10) :: Nil
-      Unfold((0 to 5).map(k => (i, k :: n)): _*)
-  }
-
   def tests[T](harness: Harness[T]): T = {
     import harness._
     namedSection("int ranges")(
@@ -50,16 +43,6 @@ object PropertySuite {
         )
         assert(actualErrors === Fail())
       },
-      test("exhaustiveU") { () =>
-        exhaustiveU(testData) {
-          case (i, l) =>
-            assert(
-              l(0) <= 5 && l(0) >= 0 &&
-              l(1) === i &&
-              l(2) === i * 10
-            )
-        }
-      }
     )
   }
 }
