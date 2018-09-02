@@ -6,7 +6,7 @@ jdk:
   - oraclejdk8
 sudo: false
 script:
-  - sbt coverage tests/run tut coverageReport
+  - sbt coverage tests/run publishMicrosite coverageReport
 branches:
   except:
   - "/^v\\d+\\.\\d+\\.\\d+$/"
