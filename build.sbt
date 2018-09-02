@@ -262,11 +262,13 @@ val docs = project
     micrositeName             := "testz",
     micrositeDescription      := "Purely functional testing library for Scala",
     micrositeAuthor           := "Edmund Noble",
-    micrositeGithubOwner      := "edmundnoble",
+    micrositeGithubOwner      := "scalaz",
     micrositeGithubRepo       := "testz",
     micrositeBaseUrl          := "/testz",
     micrositeDocumentationUrl := "/testz/docs/01-first-example.html",
-    micrositeHighlightTheme   := "color-brewer")
+    micrositeHighlightTheme   := "color-brewer",
+    micrositePushSiteWith     := GitHub4s,
+    micrositeGithubToken      := Some(sys.env("GITHUB_TOKEN")))
 
 val root = Project("root", file("."))
   .settings(name := "testz")
