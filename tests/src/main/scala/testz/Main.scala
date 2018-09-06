@@ -62,9 +62,8 @@ object Main {
       ScalazSuite.tests(harness)((), List("Scalaz tests")),
     )
 
-    def propertyTests = {
+    def propertyTests =
       PropertySuite.tests(harness)((), List("Property tests"))
-    }
 
     def runnerTests =
       RunnerSuite.tests(futureHarness, ec)((), List("Runner tests"))
