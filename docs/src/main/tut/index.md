@@ -43,8 +43,4 @@ For scalaz 7.2 support (see [here](./docs/04-scalaz.html) for information on wha
 libraryDependencies += "org.scalaz" %% "testz-scalaz" % "0.0.5"
 ```
 
-```tut:silent
-import testz._
-```
-
 Come to the [Gitter](https://gitter.im/scalaz/testz).
