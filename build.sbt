@@ -260,7 +260,7 @@ val docs = project
   )
   .settings(
     micrositeName             := "testz",
-    micrositeDescription      := "Purely functional testing library for Scala",
+    micrositeDescription      := "Purely functional testing for Scala",
     micrositeAuthor           := "Edmund Noble",
     micrositeGithubOwner      := "scalaz",
     micrositeGithubRepo       := "testz",
