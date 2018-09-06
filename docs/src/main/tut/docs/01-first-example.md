@@ -57,8 +57,8 @@ I went through a lot there; let's dissect that.
 import testz.{Harness, PureHarness, assert}
 ```
 
-Here I import `Harness`, the simplest type of test harnesses,
-`PureHarness`, an actual test harness implementation,
+Here I import `Harness` (the simplest type of test harnesses),
+`PureHarness` (an actual test harness implementation),
 and the `assert` function.
 
 `PureHarness` is from testz-stdlib, and the others are from testz-core.
