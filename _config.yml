@@ -1,6 +1,6 @@
 name: testz
 baseurl: /testz
-description: Purely functional testing library for Scala
+description: Purely functional testing for Scala
 highlighter: rouge
 docs: true
 collections:
