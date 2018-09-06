@@ -264,11 +264,22 @@ val docs = project
     micrositeAuthor           := "Edmund Noble",
     micrositeGithubOwner      := "scalaz",
     micrositeGithubRepo       := "testz",
-    micrositeBaseUrl          := "/testz",
     micrositeDocumentationUrl := "/testz/docs/01-first-example.html",
-    micrositeHighlightTheme   := "color-brewer",
+    micrositeFavicons         := Seq(microsites.MicrositeFavicon("favicon.png", "512x512")),
+    micrositeBaseUrl          := "/testz",
+    micrositePalette          := Map(
+      "brand-primary"   -> "#ED2124",
+      "brand-secondary" -> "#251605",
+      "brand-tertiary"  -> "#491119",
+      "gray-dark"       -> "#453E46",
+      "gray"            -> "#837F84",
+      "gray-light"      -> "#E3E2E3",
+      "gray-lighter"    -> "#F4F3F4",
+      "white-color"     -> "#FFFFFF"
+    ),
     micrositePushSiteWith     := GitHub4s,
-    micrositeGithubToken      := Some(sys.env("GITHUB_TOKEN")))
+    micrositeGithubToken      := sys.env.get("GITHUB_TOKEN"),
+  )
 
 val root = Project("root", file("."))
   .settings(name := "testz")
