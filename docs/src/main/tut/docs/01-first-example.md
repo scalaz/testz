@@ -51,6 +51,8 @@ val harness: Harness[PureHarness.Uses[Unit]] =
 (new MathTests()).tests(harness)((), Nil).print()
 ```
 
+For an example of how this is practically used, see the tests for testz itself [here](https://github.com/scalaz/testz/blob/master/tests/src/main/scala/testz/Main.scala).
+
 I went through a lot there; let's dissect that.
 
 ```tut:silent
