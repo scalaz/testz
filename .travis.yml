@@ -13,7 +13,7 @@ install:
   - gem install jekyll -v 3.8.2
 sudo: false
 script:
-  - if [[ "$TRAVIS_PULL_REQUEST" = "false" && "$TRAVIS_BRANCH" = "master" ]]; then sbt tests/run publishMicrosite; else sbt tests/run; fi
+  - if [[ "$TRAVIS_PULL_REQUEST" = "false" && "$TRAVIS_BRANCH" = "master" ]]; then sbt coverage tests/run publishMicrosite coverageReport; else sbt coverage tests/run coverageReport; fi
 branches:
   except:
   - "/^v\\d+\\.\\d+\\.\\d+$/"
