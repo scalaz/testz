@@ -115,6 +115,42 @@ object ScalazSuite {
             (outerRes == "List(1, 2)")
           )
         },
+        test("test throwing in task") { () =>
+          var outerRes = ""
+          var x = ""
+          val harness = TaskHarness.makeFromPrinterEffR((r, ls) => x = s"$x - $r - $ls")
+          val test =
+            harness.test[List[Int]]("test name") { (res: List[Int]) =>
+              outerRes = res.toString
+              Task.fail(new Exception())
+            }
+          val result = test(List(1, 2), List("outer")).unsafePerformSync
+          val notPrintedEarly = (x == "")
+          result.print()
+          assert(
+            notPrintedEarly &&
+            (x == " - Fail - List(test name, outer)") &&
+            (outerRes == "List(1, 2)")
+          )
+        },
+        test("test throwing outside task") { () =>
+          var outerRes = ""
+          var x = ""
+          val harness = TaskHarness.makeFromPrinterEffR((r, ls) => x = s"$x - $r - $ls")
+          val ex = new Exception()
+          val test =
+            harness.test[List[Int]]("test name") { (res: List[Int]) =>
+              outerRes = res.toString
+              throw ex
+            }
+          try {
+            test(List(1, 2), List("outer")).unsafePerformSync
+            Fail()
+          } catch {
+            case exCaught: Exception =>
+              assert(ex eq exCaught)
+          }
+        },
         test("allocate") { () =>
           var stages: List[String] = Nil
           var testOut = ""
