@@ -134,13 +134,10 @@ object ScalazSuite {
           )
         },
         test("test throwing outside task") { () =>
-          var outerRes = ""
-          var x = ""
-          val harness = TaskHarness.makeFromPrinterEffR((r, ls) => x = s"$x - $r - $ls")
+          val harness = TaskHarness.makeFromPrinterEffR((_, _) => ())
           val ex = new Exception()
           val test =
             harness.test[List[Int]]("test name") { (res: List[Int]) =>
-              outerRes = res.toString
               throw ex
             }
           try {
