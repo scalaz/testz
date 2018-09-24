@@ -62,7 +62,7 @@ object ExtrasSuite {
     }
   }
 
-  def testOnlyTests[T](test: Test[Result, T], section: Section[T]): T = {
+  def testOnlyTests[T](test: Test[Result, T], section: Section[T]): T =
     section(
       section.named("apply")(
         test("yes") { () =>
@@ -109,7 +109,6 @@ object ExtrasSuite {
         },
       )
     )
-  }
 
   def tests[T](test: Test[Result, T], section: Section[T]): T =
     section(
