@@ -30,7 +30,10 @@
 
 package testz
 
+import scala.concurrent.Future
+
 import extras._
+import runner.TestOutput
 
 object ExtrasSuite {
   def docHarnessTests[T](test: Test[Result, T]): T = {
@@ -59,16 +62,63 @@ object ExtrasSuite {
     }
   }
 
-  // def testOnlyTests[T](test: Test[Result, T], section: Section[T]): T = {
-  //   TestOnly(
-
-  //   )
-  // }
+  def testOnlyTests[T](test: Test[Result, T], section: Section[T]): T = {
+    section(
+      section.named("apply")(
+        test("yes") { () =>
+          val yes = List("hey", "there")
+          assert(
+            TestOnly[List[String], String](
+              (ls: List[String]) => ls.contains[Any]("there")
+            )(_(yes))("ZE")("IN")
+            ==
+            "IN"
+          )
+        },
+        test("no") { () =>
+          val no = List("hey")
+          assert(
+            TestOnly[List[String], String](
+              (ls: List[String]) => ls.contains[Any]("there")
+            )(_(no))("ZE")("IN")
+            ==
+            "ZE"
+          )
+        },
+      ),
+      section.named("integrations")(
+        test("pure") { () =>
+          val test = TestOnly.pure(_.contains("correct test name"))[Unit] {
+            (_: Unit, ls) => new TestOutput(failed = true, () => ())
+          }
+          assert(
+            test((), List("correct test name")).failed &&
+            !test((), List("other test name")).failed
+          )
+        },
+        test("future") { () =>
+          val test = TestOnly.future(_.contains("correct test name"))[Unit] {
+            (_: Unit, ls) => Future.successful(new TestOutput(failed = true, () => ()))
+          }
+          // `future` preserving synchronicity is part of its contract.
+          def mustSync[A](f: Future[A]): A = f.value.get.get
+          assert(
+            mustSync(test((), List("correct test name"))).failed &&
+            !mustSync(test((), List("other test name"))).failed
+          )
+        },
+      )
+    )
+  }
 
   def tests[T](test: Test[Result, T], section: Section[T]): T =
-    section.named("Document harness")(
-      docHarnessTests(test),
+    section(
+      section.named("Document harness")(
+        docHarnessTests(test)
+      ),
+      section.named("TestOnly")(
+        testOnlyTests(test, section)
+      ),
     )
-
 
 }
