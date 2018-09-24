@@ -48,25 +48,27 @@ object Main {
     // Not always a good choice; parallelism slows down heavily contended machines, for example.
     val ec = global
 
-    val harness =
-      PureHarness.makeFromPrinter(printer)
+    val test = PureHarness.test(printer)
 
-    val futureHarness =
-      FutureHarness.makeFromPrinterEff(printer)(global)
+    val section = PureHarness.section
+
+    val futureTest = FutureHarness.test(printer)(ec)
+
+    val futureSection = FutureHarness.section(ec)
 
     def unitTests = TestOutput.combineAll1(
-      ExtrasSuite.tests(harness)((), List("Extras tests")),
-      PropertySuite.tests(harness)((), List("Property tests")),
-      StdlibSuite.tests(harness, ec)((), List("Stdlib tests")),
-      CoreSuite.tests(harness)((), List("Core tests")),
-      ScalazSuite.tests(harness)((), List("Scalaz tests")),
+      ExtrasSuite.tests(test, section)((), List("Extras tests")),
+      PropertySuite.tests(test, section)((), List("Property tests")),
+      StdlibSuite.tests(test, section, ec)((), List("Stdlib tests")),
+      CoreSuite.tests(test, section)((), List("Core tests")),
+      ScalazSuite.tests(test, section)((), List("Scalaz tests")),
     )
 
     def propertyTests =
-      PropertySuite.tests(harness)((), List("Property tests"))
+      PropertySuite.tests(test, section)((), List("Property tests"))
 
     def runnerTests =
-      RunnerSuite.tests(futureHarness, ec)((), List("Runner tests"))
+      RunnerSuite.tests(futureTest, futureSection, ec)((), List("Runner tests"))
 
     // Evaluate tests before the runner expects,
     // for parallelism.

@@ -34,9 +34,8 @@ import scalaz._, Scalaz._
 import z._, z.streaming._
 
 object PropertySuite {
-  def tests[T](harness: Harness[T]): T = {
-    import harness._
-    namedSection("int ranges")(
+  def tests[T](test: Test[Result, T], section: Section[T]): T = {
+    section.named("int ranges")(
       test("exhaustiveS") { () =>
         val actualErrors = exhaustiveS[Id, Int](1, 2, 3, 4, 5, 6)(i =>
           assert(i === 3)

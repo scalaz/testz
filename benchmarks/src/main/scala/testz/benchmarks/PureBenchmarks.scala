@@ -65,10 +65,8 @@ class BulkPureBenchmarks {
   var numSuites: Int = _
 
   object FailedSuite {
-    def tests[T](harness: Harness[T]): T = {
-      import harness._
-
-      namedSection("long, long section name")(
+    def tests[T](test: Test[Result, T], section: Section[T]): T = {
+      section.named("long, long section name")(
         test("test number 0")(() => Fail()),
         List.tabulate(perSuite - 1)(n =>
           test("test number " + (n + 1))(() => Fail())
@@ -78,10 +76,8 @@ class BulkPureBenchmarks {
   }
 
   object SucceededSuite {
-    def tests[T](harness: Harness[T]): T = {
-      import harness._
-
-      namedSection("long, long section name")(
+    def tests[T](test: Test[Result, T], section: Section[T]): T = {
+      section.named("long, long section name")(
         test("test number 0")(() => Succeed()),
         List.tabulate(perSuite - 1)(n =>
           test("test number " + (n + 1))(() => Succeed())
@@ -99,13 +95,15 @@ class BulkPureBenchmarks {
       else
         (Console.print(_), () => ())
 
-    val harness = PureHarness.makeFromPrinter(
+    val test = PureHarness.test(
       (res, ls) => runner.printStrs(runner.printTest(res, ls), print)
     )
 
+    val section = PureHarness.section
+
     val suites: List[() => Future[TestOutput]] =
       List.fill(numSuites)(() =>
-        Future.successful(FailedSuite.tests(harness)((), Nil))
+        Future.successful(FailedSuite.tests(test, section)((), Nil))
       )
 
     val result = Await.result(runner(suites, print, global), Duration.Inf)
@@ -124,13 +122,15 @@ class BulkPureBenchmarks {
       else
         (Console.print(_), () => ())
 
-    val harness = PureHarness.makeFromPrinter(
+    val test = PureHarness.test(
       (res, ls) => runner.printStrs(runner.printTest(res, ls), print)
     )
 
+    val section = PureHarness.section
+
     val suites: List[() => Future[TestOutput]] =
       List.fill(numSuites)(() =>
-        Future.successful(SucceededSuite.tests(harness)((), Nil))
+        Future.successful(SucceededSuite.tests(test, section)((), Nil))
       )
 
     val result = Await.result(runner(suites, print, global), Duration.Inf)

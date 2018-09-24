@@ -37,18 +37,18 @@ import scalaz._, Scalaz._
 import scalaz.concurrent.Task
 
 object ScalazSuite {
-  def tests[T](harness: Harness[T]): T = {
-    import harness._
+  def tests[T](test: Test[Result, T], section: Section[T]): T = {
     import StdlibSuite.{testSection, sectionTestData}
 
     // every possible `Result` value
     val allResults = List(Succeed(), Fail())
 
-    val noOpTHarness = TaskHarness.makeFromPrinterR((_, _) => ())
+    val noOpTest = TaskHarness.rTest((_, _) => ())
+    val tSection = TaskHarness.rSection
 
     section(
-      namedSection("instances")(
-        namedSection("result monoid")(
+      section.named("instances")(
+        section.named("result monoid")(
           test("mappend equivalent to Result.combine") { () =>
             (allResults |@| allResults).tupled.map {
               case (i1, i2) =>
@@ -61,7 +61,7 @@ object ScalazSuite {
             assert(Monoid[Result].zero == Succeed())
           },
         ),
-        namedSection("result equal")(
+        section.named("result equal")(
           test("should agree with equals") { () =>
             (allResults |@| allResults).tupled.foldMap {
               case (i1, i2) =>
@@ -70,7 +70,7 @@ object ScalazSuite {
           },
         ),
       ),
-      namedSection("TaskHarness")(
+      section.named("TaskHarness")(
         test("section") { () =>
           sectionTestData.map {
             case (faileds, expectingFailure) =>
@@ -78,20 +78,20 @@ object ScalazSuite {
                 faileds,
                 expectingFailure,
                 t => (res, sc) => Task.now(t(res, sc)),
-                noOpTHarness.section[List[Int]],
+                tSection[List[Int]],
                 (t, res, sc) => t(res, sc).unsafePerformSync,
                 (s, i) => s == s"hey, there - 1, 2 $i"
               )
           }.reduce(Result.combine)
         },
-        test("namedSection") { () =>
+        test("section.named") { () =>
           sectionTestData.map {
             case (faileds, expectingFailure) =>
               testSection[TaskHarness.Uses[List[Int]]](
                 faileds,
                 expectingFailure,
                 t => (res, sc) => Task.now(t(res, sc)),
-                noOpTHarness.namedSection[List[Int]]("section name"),
+                tSection.named[List[Int]]("section name"),
                 (t, res, sc) => t(res, sc).unsafePerformSync,
                 (s, i) => s == s"section name, hey, there - 1, 2 $i"
               )
@@ -100,11 +100,10 @@ object ScalazSuite {
         test("test") { () =>
           var outerRes = ""
           var x = ""
-          val harness = TaskHarness.makeFromPrinterR((r, ls) => x = s"$x - $r - $ls")
           val test =
-            harness.test[List[Int]]("test name") { (res: List[Int]) =>
+            TaskHarness.rTest((r, ls) => x = s"$x - $r - $ls").apply[List[Int]]("test name") { (res: List[Int]) =>
               outerRes = res.toString
-              Succeed()
+              Task.now(Succeed())
             }
           val result = test(List(1, 2), List("outer")).unsafePerformSync
           val notPrintedEarly = (x == "")
@@ -118,9 +117,8 @@ object ScalazSuite {
         test("test throwing in task") { () =>
           var outerRes = ""
           var x = ""
-          val harness = TaskHarness.makeFromPrinterEffR((r, ls) => x = s"$x - $r - $ls")
           val test =
-            harness.test[List[Int]]("test name") { (res: List[Int]) =>
+            TaskHarness.rTest((r, ls) => x = s"$x - $r - $ls").apply[List[Int]]("test name") { (res: List[Int]) =>
               outerRes = res.toString
               Task.fail(new Exception())
             }
@@ -134,10 +132,9 @@ object ScalazSuite {
           )
         },
         test("test throwing outside task") { () =>
-          val harness = TaskHarness.makeFromPrinterEffR((_, _) => ())
           val ex = new Exception()
           val test =
-            harness.test[List[Int]]("test name") { (res: List[Int]) =>
+            noOpTest[List[Int]]("test name") { (res: List[Int]) =>
               throw ex
             }
           try {
@@ -153,7 +150,7 @@ object ScalazSuite {
           var testOut = ""
           val alloc: (Unit, List[String]) => TestOutput =
             (u, ls) =>
-              TaskHarness.makeFromPrinterR((_, _) => ()).allocate[Unit, List[Int]] { () =>
+              TaskHarness.bracket.toAllocate(Lambda[Id NT Task](Task.now(_)))[Unit, List[Int]] { () =>
                 stages ::= "alloc"
                 List(1, 2)
               } {
@@ -179,7 +176,7 @@ object ScalazSuite {
           var testOut = ""
           val bracket: (Unit, List[String]) => TestOutput =
             (u, ls) =>
-              TaskHarness.makeFromPrinterEffR((_, _) => ()).bracket[Unit, List[Int]] { () =>
+              TaskHarness.bracket.apply[Unit, List[Int]] { () =>
                 stages ::= "alloc"
                 Task.now(List(1, 2))
               } {
@@ -202,7 +199,7 @@ object ScalazSuite {
             !result.failed
           )
         },
-      )
+        )
     )
   }
 }

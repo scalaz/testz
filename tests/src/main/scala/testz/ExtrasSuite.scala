@@ -33,32 +33,42 @@ package testz
 import extras._
 
 object ExtrasSuite {
-  def tests[T](harness: Harness[T]): T = {
-    import harness._
-    namedSection("document harness")(
-      test("entire harness") { () =>
-        val docHarness = DocHarness.make
-        val buf = new scala.collection.mutable.ListBuffer[String]()
-        import docHarness.{namedSection => dNamedSection, section => dSection, test => dTest}
-        dNamedSection("outer named section")(
-          dNamedSection("first inner named section")(
-            dTest("first test inside of first inner named section")(() => ???),
-            dTest("second test inside of first inner named section")(() => ???)
-          ),
-          dNamedSection("second inner named section")(
-            dTest("first test inside of second inner section")(() => ???),
-            dSection(dTest("first test inside of section inside second inner named section")(() => ???)),
-          )
-        )("  ", buf)
-        assert(buf.result() == List(
-          "    [outer named section]",
-          "      [first inner named section]",
-          "        first test inside of first inner named section",
-          "        second test inside of first inner named section",
-          "      [second inner named section]",
-          "        first test inside of second inner section",
-          "          first test inside of section inside second inner named section"))
-      }
-    )
+  def docHarnessTests[T](test: Test[Result, T]): T = {
+    val docTest = DocHarness.test[Result]
+    val docSection = DocHarness.section
+    test("entire harness") { () =>
+      val buf = new scala.collection.mutable.ListBuffer[String]()
+      docSection.named("outer named section")(
+        docSection.named("first inner named section")(
+          docTest("first test inside of first inner named section")(() => ???),
+          docTest("second test inside of first inner named section")(() => ???)
+        ),
+        docSection.named("second inner named section")(
+          docTest("first test inside of second inner section")(() => ???),
+          docSection(docTest("first test inside of section inside second inner named section")(() => ???)),
+        )
+      )("  ", buf)
+      assert(buf.result() == List(
+        "    [outer named section]",
+        "      [first inner named section]",
+        "        first test inside of first inner named section",
+        "        second test inside of first inner named section",
+        "      [second inner named section]",
+        "        first test inside of second inner section",
+        "          first test inside of section inside second inner named section"))
+    }
   }
+
+  // def testOnlyTests[T](test: Test[Result, T], section: Section[T]): T = {
+  //   TestOnly(
+
+  //   )
+  // }
+
+  def tests[T](test: Test[Result, T], section: Section[T]): T =
+    section.named("Document harness")(
+      docHarnessTests(test),
+    )
+
+
 }

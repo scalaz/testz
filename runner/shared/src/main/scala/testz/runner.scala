@@ -61,6 +61,8 @@ object runner {
         { () => output1.print(); outputs.foreach(_.print()) }
       )
     }
+
+    val empty: TestOutput = new TestOutput(failed = false, print = () => ())
   }
 
   /**
