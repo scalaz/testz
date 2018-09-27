@@ -1,0 +1,185 @@
+<html><head><title>testz: testz-runner</title><meta charset="utf-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="Edmund Noble" /><meta name="description" content="Purely functional testing for Scala" /><meta name="og:image" content="/testz/img/poster.png" /><meta name="og:title" content="testz: testz-runner" /><meta name="og:site_name" content="testz" /><meta name="og:url" content="" /><meta name="og:type" content="website" /><meta name="og:description" content="Purely functional testing for Scala" /><link rel="icon" type="image/png" href="/testz/img/favicon.png" /><meta name="twitter:title" content="testz: testz-runner" /><meta name="twitter:image" content="img/poster.png" /><meta name="twitter:description" content="Purely functional testing for Scala" /><meta name="twitter:card" content="summary_large_image" /><link rel="icon" type="image/png" sizes="512x512" href="/testz/img/favicon.png" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" /><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" /><link rel="stylesheet" href="/testz/highlight/styles/default.css" /><link rel="stylesheet" href="/testz/css/style.css" /><link rel="stylesheet" href="/testz/css/palette.css" /><link rel="stylesheet" href="/testz/css/codemirror.css" /></head><body class="docs"><div id="wrapper"><div id="sidebar-wrapper"><ul id="sidebar" class="sidebar-nav"><li class="sidebar-brand"><a href="/testz/" class="brand"><div class="brand-wrapper"><span>testz</span></div></a></li><li><a href="/testz/docs/00-pitch.html" class="">Pitch</a></li><li><a href="/testz/docs/01-first-example.html" class="">First Example</a></li><li><a href="/testz/docs/02-core.html" class="">testz-core</a></li><li><a href="/testz/docs/03-resource.html" class="">testz-resource</a></li><li><a href="/testz/docs/04-stdlib.html" class="">testz-stdlib</a></li><li><a href="/testz/docs/05-scalaz.html" class="">testz-scalaz</a></li><li><a href="/testz/docs/06-specs2.html" class="">testz-specs2</a></li><li><a href="/testz/docs/07-scalatest.html" class="">testz-scalatest</a></li><li><a href="/testz/docs/08-runner.html" class=" active ">testz-runner</a></li><li><a href="/testz/docs/09-performance.html" class="">Performance</a></li><li><a href="/testz/docs/10-tests.html" class="">testz-util</a></li><li><a href="/testz/docs/11-util.html" class="">testz-util</a></li><li><a href="/testz/css/palette.css" class=""></a></li><li><a href="/testz/css/style.css" class=""></a></li></ul></div><div id="page-content-wrapper"><div class="nav"><div class="container-fluid"><div class="row"><div class="col-lg-12"><div class="action-menu pull-left clearfix"><a href="#menu-toggle" id="menu-toggle"><i class="fa fa-bars" aria-hidden="true"></i></a></div><ul class="pull-right"><li id="gh-eyes-item" class="hidden-xs"><a href="https://github.com/scalaz/testz"><i class="fa fa-eye"></i><span>WATCH<span id="eyes" class="label label-default">--</span></span></a></li><li id="gh-stars-item" class="hidden-xs"><a href="https://github.com/scalaz/testz"><i class="fa fa-star-o"></i><span>STARS<span id="stars" class="label label-default">--</span></span></a></li><li><a href="#" onclick="shareSiteTwitter('testz Purely functional testing for Scala');"><i class="fa fa-twitter"></i></a></li><li><a href="#" onclick="shareSiteFacebook('testz Purely functional testing for Scala');"><i class="fa fa-facebook"></i></a></li><li><a href="#" onclick="shareSiteGoogle();"><i class="fa fa-google-plus"></i></a></li></ul></div></div></div></div><div id="content" data-github-owner="scalaz" data-github-repo="testz"><div class="content-wrapper"><section><h1 id="testz-runner">testz-runner</h1>
+
+<p>The testz suite runner takes a list of test suites and returns a
+<code class="highlighter-rouge">Future[TestResult]</code>, printing test failures and successes to standard out.</p>
+
+<p>The suites are passed as <code class="highlighter-rouge">() =&gt; Future[TestOutput]</code> in order to delay computation
+of the <code class="highlighter-rouge">TestOutput</code>s.</p>
+
+<p>Prerequisite imports:</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">import</span> <span class="nn">testz._</span>
+
+<span class="k">import</span> <span class="nn">scala.concurrent.</span><span class="o">{</span><span class="nc">ExecutionContext</span><span class="o">,</span> <span class="nc">Future</span><span class="o">}</span>
+</code></pre></div></div>
+
+<p>The output of a “runnable” test group, from a typical <code class="highlighter-rouge">Harness</code>;
+a failure state and a side effect which prints all result info.</p>
+
+<p>The action which prints the result info should <em>not</em> compute the
+results; the results should have already been computed before <code class="highlighter-rouge">print()</code>
+is executed.</p>
+
+<p>Because computing the <code class="highlighter-rouge">TestOutput</code> and running the inner <code class="highlighter-rouge">print()</code> are separate,
+it’s easy to execute testz suites (and tests) in parallel without interleaving
+the results.</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">final</span> <span class="k">class</span> <span class="nc">TestOutput</span><span class="o">(</span>
+  <span class="k">val</span> <span class="n">failed</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">,</span>
+  <span class="k">val</span> <span class="n">print</span><span class="k">:</span> <span class="o">()</span> <span class="o">=&gt;</span> <span class="nc">Unit</span>
+<span class="o">)</span>
+</code></pre></div></div>
+
+<p>There’s an obvious way to combine <code class="highlighter-rouge">TestOutput</code>s; given <code class="highlighter-rouge">fst: TestOutput</code> and
+<code class="highlighter-rouge">snd: TestOutput</code>, their combination is a new <code class="highlighter-rouge">TestOutput</code> which has failed
+only if at least one of <code class="highlighter-rouge">fst</code> or <code class="highlighter-rouge">snd</code> has failed, and which when “printed”
+first calls <code class="highlighter-rouge">fst.print()</code> then <code class="highlighter-rouge">snd.print()</code>.</p>
+
+<p>Here’s an issue though: every single <code class="highlighter-rouge">section(name)(test1, tests: _*)</code> call
+will call <code class="highlighter-rouge">TestOutput.combine</code> once for each test in <code class="highlighter-rouge">tests</code>.</p>
+
+<p><code class="highlighter-rouge">TestOutput.combine</code> also builds up a <code class="highlighter-rouge">print()</code> thunk with a stack depth equal to
+the maximum of <code class="highlighter-rouge">fst.print()</code>’s stack depth and <code class="highlighter-rouge">snd.print()</code>’s stack depth, plus one.</p>
+
+<p>Putting this information together, we will consume <code class="highlighter-rouge">O(t + s)</code> stack frames in a test
+suite with <code class="highlighter-rouge">t</code> tests and <code class="highlighter-rouge">s</code> <code class="highlighter-rouge">section</code> calls.</p>
+
+<p>This is unacceptable for testz; we try to keep stack usage down to <code class="highlighter-rouge">O(h)</code>, where
+<code class="highlighter-rouge">h</code> is the maximum height of the test tree.</p>
+
+<p><code class="highlighter-rouge">combineAll1</code> provides the necessary fix; passing <code class="highlighter-rouge">n</code> <code class="highlighter-rouge">TestOutput</code>s to be combined
+to <code class="highlighter-rouge">combineAll1</code> produces a <code class="highlighter-rouge">TestOutput</code> where <code class="highlighter-rouge">print()</code> has a stack depth of the
+maximum of each <code class="highlighter-rouge">TestOutput</code>’s stack depth, plus one.</p>
+
+<p>If <code class="highlighter-rouge">section(name)(test1, tests: _*)</code> uses <code class="highlighter-rouge">combineAll1</code> instead of <code class="highlighter-rouge">combine</code>,
+then, the stack usage will be constant regardless of the length of <code class="highlighter-rouge">tests</code>.</p>
+
+<p>This gets us exactly the asymptotics we need: one stack frame per level of the
+test tree.</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">object</span> <span class="nc">TestOutput</span> <span class="o">{</span>
+  <span class="c1">// The `mappend` operation for the `Monoid` of `TestOutput`s.
+</span>  <span class="c1">// If either fails, the result fails.
+</span>  <span class="k">def</span> <span class="n">combine</span><span class="o">(</span><span class="n">fst</span><span class="k">:</span> <span class="kt">TestOutput</span><span class="o">,</span> <span class="n">snd</span><span class="k">:</span> <span class="kt">TestOutput</span><span class="o">)</span> <span class="k">=</span>
+    <span class="k">new</span> <span class="nc">TestOutput</span><span class="o">(</span>
+      <span class="n">fst</span><span class="o">.</span><span class="n">failed</span> <span class="o">||</span> <span class="n">snd</span><span class="o">.</span><span class="n">failed</span><span class="o">,</span>
+      <span class="o">{</span> <span class="o">()</span> <span class="k">=&gt;</span> <span class="n">fst</span><span class="o">.</span><span class="n">print</span><span class="o">();</span> <span class="n">snd</span><span class="o">.</span><span class="n">print</span><span class="o">()</span> <span class="o">}</span>
+    <span class="o">)</span>
+
+  <span class="c1">// Combines 1 or more `TestOutput`s, using logarithmic stack depth in the number of
+</span>  <span class="c1">// tests unlike `combine` which would be linear.
+</span>  <span class="k">def</span> <span class="n">combineAll1</span><span class="o">(</span><span class="n">output1</span><span class="k">:</span> <span class="kt">TestOutput</span><span class="o">,</span> <span class="n">outputs</span><span class="k">:</span> <span class="kt">TestOutput*</span><span class="o">)</span> <span class="k">=</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="n">anyFailed</span> <span class="k">=</span> <span class="n">output1</span><span class="o">.</span><span class="n">failed</span> <span class="o">||</span> <span class="n">outputs</span><span class="o">.</span><span class="n">exists</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">failed</span><span class="o">)</span>
+    <span class="k">new</span> <span class="nc">TestOutput</span><span class="o">(</span>
+      <span class="n">anyFailed</span><span class="o">,</span>
+      <span class="o">{</span> <span class="o">()</span> <span class="k">=&gt;</span> <span class="n">output1</span><span class="o">.</span><span class="n">print</span><span class="o">();</span> <span class="n">outputs</span><span class="o">.</span><span class="n">foreach</span><span class="o">(</span><span class="k">_</span><span class="o">.</span><span class="n">print</span><span class="o">())</span> <span class="o">}</span>
+    <span class="o">)</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div></div>
+
+<p>Returned by <code class="highlighter-rouge">runner.apply</code> - after all is said and done,
+tests run and output printed, did any fail?
+Useful for exit status; I often check <code class="highlighter-rouge">failed</code> and throw an exception
+in <code class="highlighter-rouge">main</code> if it’s <code class="highlighter-rouge">true</code>.</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">final</span> <span class="k">class</span> <span class="nc">TestResult</span><span class="o">(</span><span class="k">val</span> <span class="n">failed</span><span class="k">:</span> <span class="kt">Boolean</span><span class="o">)</span>
+</code></pre></div></div>
+
+<p>The meat of the runner.
+Takes a list of <code class="highlighter-rouge">() =&gt; Future[TestOutput]</code> and runs all of them in sequence,
+immediately printing out the results of each as they finish.
+Then, prints out how long the suites took to run, using the user-supplied printer.
+Returns whether any tests failed.</p>
+
+<p><code class="highlighter-rouge">futureUtil</code> is explained in the <a href="./10-util.html">testz-util docs</a>;
+essentially it provides tools to use <code class="highlighter-rouge">Future</code> without submitting to an
+<code class="highlighter-rouge">ExecutionContext</code> unless it’s necessary.</p>
+
+<p><code class="highlighter-rouge">akka.util.FastFuture</code> is apparently similar, but I learned about it after
+writing <code class="highlighter-rouge">futureUtil</code>.</p>
+
+<p>Most of what the runner does is a) time measurement and b) this:</p>
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="k">val</span> <span class="n">run</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Boolean</span><span class="o">]</span> <span class="k">=</span> <span class="n">futureUtil</span><span class="o">.</span><span class="n">orIterator</span><span class="o">(</span><span class="n">suites</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">map</span> <span class="o">{</span> <span class="n">suite</span> <span class="k">=&gt;</span>
+    <span class="n">futureUtil</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">suite</span><span class="o">())</span> <span class="o">{</span> <span class="n">r</span> <span class="k">=&gt;</span> <span class="n">r</span><span class="o">.</span><span class="n">print</span><span class="o">();</span> <span class="n">r</span><span class="o">.</span><span class="n">failed</span> <span class="o">}(</span><span class="n">ec</span><span class="o">)</span>
+  <span class="o">})(</span><span class="n">ec</span><span class="o">)</span>
+</code></pre></div></div>
+
+<p>That code runs each test suite, then prints out their results, while accumulating
+the failure state.</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  <span class="k">def</span> <span class="n">apply</span><span class="o">(</span><span class="n">suites</span><span class="k">:</span> <span class="kt">List</span><span class="o">[()</span> <span class="k">=&gt;</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">TestOutput</span><span class="o">]],</span> <span class="n">printer</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=&gt;</span> <span class="nc">Unit</span><span class="o">,</span> <span class="n">ec</span><span class="k">:</span> <span class="kt">ExecutionContext</span><span class="o">)</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">TestResult</span><span class="o">]</span> <span class="k">=</span> <span class="o">{</span>
+    <span class="k">val</span> <span class="n">startTime</span> <span class="k">=</span> <span class="nc">System</span><span class="o">.</span><span class="n">currentTimeMillis</span>
+    <span class="k">val</span> <span class="n">run</span><span class="k">:</span> <span class="kt">Future</span><span class="o">[</span><span class="kt">Boolean</span><span class="o">]</span> <span class="k">=</span> <span class="n">futureUtil</span><span class="o">.</span><span class="n">orIterator</span><span class="o">(</span><span class="n">suites</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">map</span> <span class="o">{</span> <span class="n">suite</span> <span class="k">=&gt;</span>
+      <span class="n">futureUtil</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">suite</span><span class="o">())</span> <span class="o">{</span> <span class="n">r</span> <span class="k">=&gt;</span> <span class="n">r</span><span class="o">.</span><span class="n">print</span><span class="o">();</span> <span class="n">r</span><span class="o">.</span><span class="n">failed</span> <span class="o">}(</span><span class="n">ec</span><span class="o">)</span>
+    <span class="o">})(</span><span class="n">ec</span><span class="o">)</span>
+    <span class="n">futureUtil</span><span class="o">.</span><span class="n">map</span><span class="o">(</span><span class="n">run</span><span class="o">)</span> <span class="o">{</span> <span class="n">f</span> <span class="k">=&gt;</span>
+      <span class="k">val</span> <span class="n">endTime</span> <span class="k">=</span> <span class="nc">System</span><span class="o">.</span><span class="n">currentTimeMillis</span>
+      <span class="n">printer</span><span class="o">(</span>
+        <span class="s">"Testing took "</span> <span class="o">+</span>
+        <span class="nc">String</span><span class="o">.</span><span class="n">valueOf</span><span class="o">(</span><span class="n">endTime</span> <span class="o">-</span> <span class="n">startTime</span><span class="o">)</span> <span class="o">+</span>
+        <span class="s">"ms.\n"</span>
+      <span class="o">)</span>
+      <span class="k">new</span> <span class="nc">TestResult</span><span class="o">(</span><span class="n">f</span><span class="o">)</span>
+    <span class="o">}(</span><span class="n">ec</span><span class="o">)</span>
+  <span class="o">}</span>
+</code></pre></div></div>
+
+<p>Cached for performance.</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">val</span> <span class="n">newlineSingleton</span> <span class="k">=</span>
+  <span class="s">"\n"</span> <span class="o">::</span> <span class="nc">Nil</span>
+</code></pre></div></div>
+
+<p>These four functions are just utility methods for users to write fast
+test result printers.</p>
+
+<div class="language-scala highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nd">@scala</span><span class="o">.</span><span class="n">annotation</span><span class="o">.</span><span class="n">tailrec</span>
+<span class="k">def</span> <span class="n">printStrs</span><span class="o">(</span><span class="n">strs</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">],</span> <span class="n">output</span><span class="k">:</span> <span class="kt">String</span> <span class="o">=&gt;</span> <span class="nc">Unit</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="n">strs</span> <span class="k">match</span> <span class="o">{</span>
+  <span class="k">case</span> <span class="n">x</span> <span class="o">::</span> <span class="n">xs</span> <span class="k">=&gt;</span> <span class="n">output</span><span class="o">(</span><span class="n">x</span><span class="o">);</span> <span class="n">printStrs</span><span class="o">(</span><span class="n">xs</span><span class="o">,</span> <span class="n">output</span><span class="o">)</span>
+  <span class="k">case</span> <span class="k">_</span> <span class="k">=&gt;</span>
+<span class="o">}</span>
+
+<span class="nd">@scala</span><span class="o">.</span><span class="n">annotation</span><span class="o">.</span><span class="n">tailrec</span>
+<span class="k">def</span> <span class="n">printStrss</span><span class="o">(</span><span class="n">strs</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">]],</span> <span class="n">output</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span> <span class="k">=&gt;</span> <span class="nc">Unit</span><span class="o">)</span><span class="k">:</span> <span class="kt">Unit</span> <span class="o">=</span> <span class="n">strs</span> <span class="k">match</span> <span class="o">{</span>
+  <span class="k">case</span> <span class="n">xs</span><span class="k">:</span> <span class="kt">::</span><span class="err">[</span><span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span><span class="err">]</span> <span class="k">=&gt;</span>
+    <span class="k">val</span> <span class="n">head</span> <span class="k">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">head</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">head</span><span class="o">.</span><span class="n">nonEmpty</span><span class="o">)</span> <span class="o">{</span>
+      <span class="n">output</span><span class="o">(</span><span class="n">head</span><span class="o">)</span>
+      <span class="n">output</span><span class="o">(</span><span class="n">newlineSingleton</span><span class="o">)</span>
+    <span class="o">}</span>
+    <span class="n">printStrss</span><span class="o">(</span><span class="n">xs</span><span class="o">.</span><span class="n">tail</span><span class="o">,</span> <span class="n">output</span><span class="o">)</span>
+  <span class="k">case</span> <span class="k">_</span> <span class="k">=&gt;</span>
+<span class="o">}</span>
+
+<span class="k">def</span> <span class="n">intersperse</span><span class="o">(</span><span class="n">strs</span><span class="k">:</span> <span class="kt">::</span><span class="err">[</span><span class="kt">String</span><span class="err">]</span><span class="o">,</span> <span class="n">delim</span><span class="k">:</span> <span class="kt">String</span><span class="o">)</span><span class="k">:</span> <span class="kt">::</span><span class="err">[</span><span class="kt">String</span><span class="err">]</span> <span class="o">=</span> <span class="o">{</span>
+  <span class="k">if</span> <span class="o">(</span><span class="n">strs</span><span class="o">.</span><span class="n">tail</span> <span class="n">eq</span> <span class="nc">Nil</span><span class="o">)</span> <span class="o">{</span>
+    <span class="n">strs</span>
+  <span class="o">}</span> <span class="k">else</span> <span class="o">{</span>
+    <span class="k">var</span> <span class="n">newList</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span> <span class="k">=</span> <span class="nc">Nil</span>
+    <span class="k">var</span> <span class="n">cursor</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span> <span class="k">=</span> <span class="n">strs</span>
+    <span class="k">while</span> <span class="o">(</span><span class="n">cursor</span> <span class="n">ne</span> <span class="nc">Nil</span><span class="o">)</span> <span class="o">{</span>
+      <span class="n">newList</span> <span class="k">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">head</span> <span class="o">::</span> <span class="n">newList</span>
+      <span class="k">val</span> <span class="n">tl</span> <span class="k">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">tail</span>
+      <span class="k">if</span> <span class="o">(</span><span class="n">tl</span> <span class="n">ne</span> <span class="nc">Nil</span><span class="o">)</span> <span class="o">{</span>
+        <span class="n">newList</span> <span class="k">=</span> <span class="n">delim</span> <span class="o">::</span> <span class="n">newList</span>
+      <span class="o">}</span>
+      <span class="n">cursor</span> <span class="k">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">tail</span>
+    <span class="o">}</span>
+    <span class="n">newList</span><span class="o">.</span><span class="n">asInstanceOf</span><span class="o">[</span><span class="kt">::</span><span class="o">[</span><span class="kt">String</span><span class="o">]]</span>
+  <span class="o">}</span>
+<span class="o">}</span>
+
+<span class="c1">// Note that tests which succeed never have results printed
+// (if you use this function)
+</span><span class="k">def</span> <span class="n">printTest</span><span class="o">(</span><span class="n">scope</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">],</span> <span class="n">out</span><span class="k">:</span> <span class="kt">Result</span><span class="o">)</span><span class="k">:</span> <span class="kt">List</span><span class="o">[</span><span class="kt">String</span><span class="o">]</span> <span class="k">=</span> <span class="n">out</span> <span class="k">match</span> <span class="o">{</span>
+  <span class="k">case</span> <span class="k">_:</span> <span class="kt">Succeed</span> <span class="o">=&gt;</span> <span class="nc">Nil</span>
+  <span class="k">case</span> <span class="k">_</span>          <span class="k">=&gt;</span> <span class="n">intersperse</span><span class="o">(</span><span class="k">new</span> <span class="o">::(</span><span class="s">"failed\n"</span><span class="o">,</span> <span class="n">scope</span><span class="o">),</span> <span class="s">"-&gt;"</span><span class="o">)</span>
+<span class="o">}</span>
+</code></pre></div></div>
+</section></div></div></div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script><script src="/testz/highlight/highlight.pack.js"></script><script>hljs.configure({
+languages:['scala','java','bash']
+});
+hljs.initHighlighting();
+             </script><script>((window.gitter = {}).chat = {}).options = {
+room: 'scalaz/testz'};</script><script src="https://sidecar.gitter.im/dist/sidecar.v1.js"></script><script src="/testz/js/main.js"></script></body></html>
