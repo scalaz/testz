@@ -66,21 +66,19 @@ object ExtrasSuite {
     section(
       section.named("apply")(
         test("yes") { () =>
-          val yes = List("hey", "there")
           assert(
-            TestOnly[List[String], String](
-              (ls: List[String]) => ls.contains[Any]("there")
-            )(_(yes))("ZE")("IN")
+            TestOnly[Boolean, String](
+              identity
+            )(_(true))("ZE")("IN")
             ==
             "IN"
           )
         },
         test("no") { () =>
-          val no = List("hey")
           assert(
-            TestOnly[List[String], String](
-              (ls: List[String]) => ls.contains[Any]("there")
-            )(_(no))("ZE")("IN")
+            TestOnly[Boolean, String](
+              identity
+            )(_(false))("ZE")("IN")
             ==
             "ZE"
           )
