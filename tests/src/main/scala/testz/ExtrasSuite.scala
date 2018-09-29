@@ -65,22 +65,22 @@ object ExtrasSuite {
   def testOnlyTests[T](test: Test[Result, T], section: Section[T]): T =
     section(
       section.named("apply")(
-        test("yes") { () =>
+        test("true") { () =>
           assert(
             TestOnly[Boolean, String](
               identity
-            )(_(true))("ZE")("IN")
+            )(_(true))("F")("T")
             ==
-            "IN"
+            "T"
           )
         },
-        test("no") { () =>
+        test("false") { () =>
           assert(
             TestOnly[Boolean, String](
               identity
-            )(_(false))("ZE")("IN")
+            )(_(false))("F")("T")
             ==
-            "ZE"
+            "F"
           )
         },
       ),
@@ -98,7 +98,7 @@ object ExtrasSuite {
           val test = TestOnly.future(_.contains("correct test name"))[Unit] {
             (_: Unit, ls) => Future.successful(new TestOutput(failed = true, () => ()))
           }
-          // `future` preserving synchronicity is part of its contract.
+          // `TestOnly.future` preserving synchronicity is part of its contract.
           def mustSync[A](f: Future[A]): A = f.value.get.get
           assert(
             mustSync(test((), List("correct test name"))).failed &&
