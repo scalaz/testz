@@ -30,8 +30,8 @@
 
 package testz
 
+import resource.{Bracket, RSection, RTest}
 import runner.TestOutput
-// import scala.concurrent.{ExecutionContext, Future, Promise}
 
 import scalaz._, Scalaz._
 import scalaz.concurrent.Task
@@ -49,46 +49,25 @@ object z {
 
     type Uses[R] = (R, List[String]) => Task[TestOutput]
 
-    def makeFromPrinter(
+    def rTest(
       printer: (Result, List[String]) => Unit
-    ): Harness[Uses[Unit]] =
-      EffectHarness.toHarness(makeFromPrinterEff(printer))(Task.now)
-
-    def makeFromPrinterR(
-      output: (Result, List[String]) => Unit
-    ): ResourceHarness[Uses] = {
-      val self = makeFromPrinterEffR(output)
-      EffectResourceHarness.toResourceHarness(
-        new EffectResourceHarness[λ[X => X], Uses] {
-          def test[R](name: String)(assertions: R => Result): Uses[R] =
-            self.test[R](name)(assertions.andThen(Task.now))
-          def namedSection[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] =
-            self.namedSection[R](name)(test1, tests: _*)
-          def section[R](test1: Uses[R], tests: Uses[R]*): Uses[R] =
-            self.section[R](test1, tests: _*)
-          def bracket[R, I](init: () => I)(cleanup: I => Unit)(tests: Uses[(I, R)]): Uses[R] =
-            self.bracket(() => Task.now(init()))(_ => Task.now(()))(tests)
-        }
-      )
-    }
-
-    def makeFromPrinterEff(
-      printer: (Result, List[String]) => Unit
-    ): EffectHarness[Task, Uses[Unit]] =
-      EffectResourceHarness.toEffectHarness(makeFromPrinterEffR(printer))
-
-    def makeFromPrinterEffR(
-      printer: (Result, List[String]) => Unit
-    ): EffectResourceHarness[Task, Uses] = new EffectResourceHarness[Task, Uses] {
-      def test[R](name: String)(assertion: R => Task[Result]): Uses[R] =
+    ): RTest[Task[Result], Uses] = new RTest[Task[Result], Uses] {
+      def apply[R](name: String)(assertion: R => Task[Result]): Uses[R] =
         (r, sc) => assertion(r).attempt.map {
           case \/-(es) =>
             new TestOutput(failed = (es == Fail()), () => printer(es, name :: sc))
           case -\/(_) =>
             new TestOutput(failed = true, () => printer(Fail(), name :: sc))
         }
+    }
 
-      def namedSection[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
+    def test(
+      printer: (Result, List[String]) => Unit
+    ): Test[Task[Result], Uses[Unit]] =
+      rTest(printer).toTest[Unit]
+
+    val rSection: RSection[Uses] = new RSection[Uses] {
+      def named[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
         (r, sc) =>
           val newScope = name :: sc
           test1(r, newScope).flatMap(o1 =>
@@ -96,14 +75,18 @@ object z {
           )
       }
 
-      def section[R](test1: Uses[R], tests: Uses[R]*): Uses[R] = {
+      def apply[R](test1: Uses[R], tests: Uses[R]*): Uses[R] = {
         (r, sc) =>
           test1(r, sc).flatMap(o1 =>
             tests.toList.traverse(_(r, sc)).map(os => TestOutput.combineAll1(o1, os: _*))
           )
       }
+    }
 
-      def bracket[R, I]
+    val section: Section[Uses[Unit]] = rSection.toSection[Unit]
+
+    val bracket: Bracket[Uses, Task] = new Bracket[Uses, Task] {
+      def apply[R, I]
         (init: () => Task[I])
         (cleanup: I => Task[Unit])
         (tests: Uses[(I, R)]

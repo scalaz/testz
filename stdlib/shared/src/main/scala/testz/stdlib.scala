@@ -30,6 +30,8 @@
 
 package testz
 
+import resource._
+
 import runner.TestOutput
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
@@ -38,31 +40,30 @@ import scala.util.Try
 object PureHarness {
   type Uses[R] = (R, List[String]) => TestOutput
 
-  def makeFromPrinter(
+  def test(
     output: (Result, List[String]) => Unit
-  ): Harness[Uses[Unit]] =
-    ResourceHarness.toHarness(makeFromPrinterR(output))
+  ): Test[Result, Uses[Unit]] =
+    rTest(output).toTest[Unit]
 
-  def makeFromPrinterR(
+  def rTest(
     output: (Result, List[String]) => Unit
-  ): ResourceHarness[Uses] =
-    new ResourceHarness[Uses] {
-      override def test[R]
-        (name: String)
-        (assertions: R => Result
-      ): Uses[R] =
+  ): RTest[Result, Uses] = new RTest[Result, Uses] {
+    def apply[Resource](name: String)(assertions: Resource => Result): Uses[Resource] =
+      { (resource, scope) =>
         // note that `assertions(r)` is *already computed* before the
         // `() => Unit` is run; this is important to separate phases between
         // printing and running tests.
-        { (resource, scope) =>
-          val result = assertions(resource)
-          new TestOutput(
-            result ne Succeed(),
-            () => output(result, name :: scope)
-          )
-        }
+        val result = assertions(resource)
+        new TestOutput(
+          result ne Succeed(),
+          () => output(result, name :: scope)
+        )
+      }
+  }
 
-      override def namedSection[R]
+  def section: Section[Uses[Unit]] = rSection.toSection[Unit]
+  def rSection: RSection[Uses] = new RSection[Uses] {
+      def named[R]
         (name: String)
         (test1: Uses[R], tests: Uses[R]*
       ): Uses[R] = {
@@ -73,21 +74,21 @@ object PureHarness {
           TestOutput.combineAll1(outFirst, outRest: _*)
       }
 
-      override def section[R]
-        (test1: Uses[R], tests: Uses[R]*
-      ): Uses[R] = {
-        (r, sc) =>
-          val outFirst = test1(r, sc)
-          val outRest = tests.map(_(r, sc))
-          TestOutput.combineAll1(outFirst, outRest: _*)
-      }
-
-      override def allocate[R, I]
-        (init: () => I)
-        (tests: ((I, R), List[String]) => TestOutput
-      ): Uses[R] =
-        (r, sc) => tests((init(), r), sc)
+    def apply[Resource](test1: Uses[Resource], tests: Uses[Resource]*): Uses[Resource] = {
+      (r, sc) =>
+        val outFirst = test1(r, sc)
+        val outRest = tests.map(_(r, sc))
+        TestOutput.combineAll1(outFirst, outRest: _*)
     }
+  }
+
+  def allocate: Allocate[Uses] = new Allocate[Uses] {
+    def apply[R, I]
+      (init: () => I)
+      (tests: ((I, R), List[String]) => TestOutput
+    ): Uses[R] =
+      (r, sc) => tests((init(), r), sc)
+  }
 
 }
 
@@ -95,108 +96,88 @@ object FutureHarness {
 
   type Uses[R] = (R, List[String]) => Future[TestOutput]
 
-  def makeFromPrinter(
+  def test(
     output: (Result, List[String]) => Unit
   )(
     ec: ExecutionContext
-  ): Harness[Uses[Unit]] =
-    ResourceHarness.toHarness(makeFromPrinterR(output)(ec))
+  ): Test[Future[Result], Uses[Unit]] =
+    rTest(output)(ec).toTest[Unit]
 
-  def makeFromPrinterR(
+  def rTest(
     output: (Result, List[String]) => Unit
   )(
     ec: ExecutionContext
-  ): ResourceHarness[Uses] = {
-    val self = makeFromPrinterEffR(output)(ec)
-    EffectResourceHarness.toResourceHarness(
-      new EffectResourceHarness[λ[X => X], Uses] {
-        def test[R](name: String)(assertions: R => Result): Uses[R] =
-          self.test[R](name)(assertions.andThen(Future.successful))
-        def namedSection[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] =
-          self.namedSection[R](name)(test1, tests: _*)
-        def section[R](test1: Uses[R], tests: Uses[R]*): Uses[R] =
-          self.section[R](test1, tests: _*)
-        def bracket[R, I](init: () => I)(cleanup: I => Unit)(tests: Uses[(I, R)]): Uses[R] =
-          self.bracket(() => Future.successful(init()))(_ => Future.unit)(tests)
-      }
-    )
+  ): RTest[Future[Result], Uses] = new RTest[Future[Result], Uses] {
+    // note that `assertions(r)` is *already computed* before we run
+    // the `() => Unit`.
+    def apply[Resource](name: String)(assertions: Resource => Future[Result]): Uses[Resource] =
+      (r, sc) => assertions(r).transform {
+        case scala.util.Success(result) =>
+          scala.util.Success(new TestOutput(result ne Succeed(), () => output(result, name :: sc)))
+        case scala.util.Failure(_) =>
+          scala.util.Success(new TestOutput(true, () => output(Fail(), name :: sc)))
+      }(ec)
   }
 
-  def makeFromPrinterEff(
-    output: (Result, List[String]) => Unit
-  )(
-    ec: ExecutionContext
-  ): EffectHarness[Future, Uses[Unit]] =
-    EffectResourceHarness.toEffectHarness(makeFromPrinterEffR(output)(ec))
+  def section(ec: ExecutionContext): Section[Uses[Unit]] =
+    rSection(ec).toSection[Unit]
 
-  def makeFromPrinterEffR(
-    outputTest: (Result, List[String]) => Unit,
-  )(
-    ec: ExecutionContext
-  ): EffectResourceHarness[Future, Uses] =
-    new EffectResourceHarness[Future, Uses] {
-      // note that `assertions(r)` is *already computed* before we run
-      // the `() => Unit`.
-      def test[R](name: String)(assertions: R => Future[Result]): Uses[R] =
-        (r, sc) => assertions(r).transform {
-          case scala.util.Success(result) =>
-            scala.util.Success(new TestOutput(result ne Succeed(), () => outputTest(result, name :: sc)))
-          case scala.util.Failure(_) =>
-            scala.util.Success(new TestOutput(true, () => outputTest(Fail(), name :: sc)))
-        }(ec)
-
-      def namedSection[R](name: String)(test1: Uses[R], tests: Uses[R]*): Uses[R] = {
-        (r, sc) =>
-          val newScope = name :: sc
-          test1(r, newScope).flatMap { p1 =>
-            futureUtil.collectIterator(tests.iterator.map(_(r, newScope)))(ec).map { ps =>
-              TestOutput.combineAll1(p1, ps: _*)
-            }(ec)
+  def rSection(ec: ExecutionContext): RSection[Uses] = new RSection[Uses] {
+    def named[Resource](name: String)(test1: Uses[Resource], tests: Uses[Resource]*): Uses[Resource] = {
+      (r, sc) =>
+        val newScope = name :: sc
+        test1(r, newScope).flatMap { p1 =>
+          futureUtil.collectIterator(tests.iterator.map(_(r, newScope)))(ec).map { ps =>
+            TestOutput.combineAll1(p1, ps: _*)
           }(ec)
-      }
-
-      def section[R](test1: Uses[R], tests: Uses[R]*): Uses[R] = {
-        (r, sc) =>
-          test1(r, sc).flatMap { p1 =>
-            futureUtil.collectIterator(tests.iterator.map(_(r, sc)))(ec).map { ps =>
-              TestOutput.combineAll1(p1, ps: _*)
-            }(ec)
-          }(ec)
-      }
-
-      // a more powerful version of `Future.transform` that lets you block on
-      // whatever you make from the inner `Try[A]`, instead of only letting you
-      // return a `Try`.
-      // relative monad operation (`rflatMap :: f a -> (g a -> f b) -> f b`)
-      private def blockingTransform[A, B](fut: Future[A])(f: Try[A] => Future[B])(ec: ExecutionContext): Future[B] = {
-        val prom = Promise[B]
-        fut.onComplete {
-          t => prom.completeWith(f(t))
         }(ec)
-        prom.future
-      }
-
-      private def fromTry[A](t: Try[A]): Future[A] = {
-        if (t.isInstanceOf[scala.util.Failure[A]])
-          Future.failed(t.asInstanceOf[scala.util.Failure[A]].exception)
-        else
-          Future.successful(t.asInstanceOf[scala.util.Success[A]].value)
-      }
-
-      def bracket[R, I]
-        (init: () => Future[I])
-        (cleanup: I => Future[Unit])
-        (tests: Uses[(I, R)]
-      ): Uses[R] = { (r, sc) =>
-        init().flatMap { i =>
-          blockingTransform(
-            tests((i, r), sc)
-          )(r =>
-            cleanup(i).flatMap(_ =>
-              fromTry(r)
-            )(ec)
-          )(ec)
-        }(ec)
-      }
     }
+
+    def apply[Resource](test1: Uses[Resource], tests: Uses[Resource]*): Uses[Resource] = {
+      (r, sc) =>
+        test1(r, sc).flatMap { p1 =>
+          futureUtil.collectIterator(tests.iterator.map(_(r, sc)))(ec).map { ps =>
+            TestOutput.combineAll1(p1, ps: _*)
+          }(ec)
+        }(ec)
+    }
+  }
+
+  def bracket(ec: ExecutionContext): Bracket[Uses, Future] = new Bracket[Uses, Future] {
+
+    private def fromTry[A](t: Try[A]): Future[A] = {
+      if (t.isInstanceOf[scala.util.Failure[A]])
+        Future.failed(t.asInstanceOf[scala.util.Failure[A]].exception)
+      else
+        Future.successful(t.asInstanceOf[scala.util.Success[A]].value)
+    }
+
+    // a more powerful version of `Future.transform` that lets you block on
+    // whatever you make from the inner `Try[A]`, instead of only letting you
+    // return a `Try`.
+    // relative monad operation (`rflatMap :: f a -> (g a -> f b) -> f b`)
+    private def blockingTransform[A, B](fut: Future[A])(f: Try[A] => Future[B])(ec: ExecutionContext): Future[B] = {
+      val prom = Promise[B]
+      fut.onComplete {
+        t => prom.completeWith(f(t))
+      }(ec)
+      prom.future
+    }
+
+    def apply[R, I]
+      (init: () => Future[I])
+      (cleanup: I => Future[Unit])
+      (tests: Uses[(I, R)]
+    ): Uses[R] = { (r, sc) =>
+      init().flatMap { i =>
+        blockingTransform(
+          tests((i, r), sc)
+        )(r =>
+          cleanup(i).flatMap(_ =>
+            fromTry(r)
+          )(ec)
+        )(ec)
+      }(ec)
+    }
+  }
 }

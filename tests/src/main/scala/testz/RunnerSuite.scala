@@ -36,10 +36,9 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.mutable.ListBuffer
 
 object RunnerSuite {
-  def tests[T](harness: EffectHarness[Future, T], ec: ExecutionContext): T = {
-    import harness._
+  def tests[T](test: Test[Future[Result], T], section: Section[T], ec: ExecutionContext): T = {
     section(
-      namedSection("timing")(
+      section.named("timing")(
         test(
           "all tests should be run once and their results printed immediately, and in order"
         ) { () =>
@@ -101,7 +100,7 @@ object RunnerSuite {
           }(ec)
         },
       ),
-      namedSection("TestOutput")(
+      section.named("TestOutput")(
         test("combine") { () =>
           def test(failed1: Boolean, failed2: Boolean, failedExpected: Boolean): Result = {
             var x = ""
@@ -156,7 +155,7 @@ object RunnerSuite {
           )
         },
       ),
-      namedSection("printing utilities")(
+      section.named("printing utilities")(
         test("printStrs") { () =>
           val strs = List(
             List(),

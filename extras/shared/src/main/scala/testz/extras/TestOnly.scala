@@ -28,8 +28,35 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package object testz {
-  type Id[A] = A
-  def assert(b: Boolean): Result =
-    if (b) Succeed() else Fail()
+package testz
+package extras
+
+import scala.concurrent.Future
+
+import runner.TestOutput
+
+object TestOnly {
+  def apply[X, T](pred: X => Boolean)
+                 (grab: (X => T) => T)
+                 (ze: T)(in: T)
+                 : T = {
+    grab(ls => if (pred(ls)) in else ze)
+  }
+
+  def pure(pred: List[String] => Boolean): PureHarness.Uses NT PureHarness.Uses =
+    new (PureHarness.Uses NT PureHarness.Uses) {
+      def apply[R](in: PureHarness.Uses[R]): PureHarness.Uses[R] =
+        TestOnly[List[String], PureHarness.Uses[R]](pred)(
+          f => (r, ls) => f(ls)(r, ls)
+        )((_, _) => TestOutput.empty)(in)
+    }
+
+  def future(pred: List[String] => Boolean): FutureHarness.Uses NT FutureHarness.Uses =
+    new (FutureHarness.Uses NT FutureHarness.Uses) {
+      def apply[R](in: FutureHarness.Uses[R]): FutureHarness.Uses[R] =
+        TestOnly[List[String], FutureHarness.Uses[R]](pred)(
+          f => (r, ls) => f(ls)(r, ls)
+        )((_, _) => Future.successful(TestOutput.empty))(in)
+    }
+
 }

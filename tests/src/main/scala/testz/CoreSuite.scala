@@ -31,10 +31,9 @@
 package testz
 
 object CoreSuite {
-  def tests[T](harness: Harness[T]): T = {
-    import harness._
+  def tests[T](test: Test[Result, T], section: Section[T]): T =
     section(
-      namedSection("assert")(
+      section.named("assert")(
         test("success") { () =>
           if (assert(true) eq Succeed()) Succeed()
           else Fail()
@@ -44,7 +43,7 @@ object CoreSuite {
           else Fail()
         }
       ),
-      namedSection("result methods")(
+      section.named("result methods")(
         test("Result.combine") { () =>
           val data = List(
             (Succeed(), Succeed(), Succeed()),
@@ -61,7 +60,7 @@ object CoreSuite {
           }
         },
       ),
-      namedSection("Result#equals")(
+      section.named("Result#equals")(
         test("agrees with eq") { () =>
           val data = List(
             (Succeed(), Succeed()),
@@ -88,5 +87,4 @@ object CoreSuite {
         },
       )
     )
-  }
 }

@@ -31,6 +31,7 @@
 package testz
 
 import scala.concurrent.{Await, ExecutionContext, Future}
+// import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 
 import runner.TestOutput
@@ -69,35 +70,33 @@ object StdlibSuite {
       (List(false, true, true, true, true), true),
     )
 
-  def tests[T](harness: Harness[T], ec: ExecutionContext): T = {
-    import harness._
-
-    val noOpPHarness = PureHarness.makeFromPrinterR((_, _) => ())
-    val noOpFHarness = FutureHarness.makeFromPrinterEffR((_, _) => ())(ec)
+  def tests[T](test: Test[Result, T], section: Section[T], ec: ExecutionContext): T = {
+    val pSection  = PureHarness.rSection
+    val fSection  = FutureHarness.rSection(ec)
 
     section(
-      namedSection("PureHarness")(
-        test("section") { () =>
+      section.named("PureHarness")(
+        test("section.apply") { () =>
           sectionTestData.map {
             case (faileds, expectingFailure) =>
               testSection[PureHarness.Uses[List[Int]]](
                 faileds,
                 expectingFailure,
                 t => t,
-                noOpPHarness.section[List[Int]],
+                pSection[List[Int]],
                 (t, res, sc) => t(res, sc),
                 (s, i) => s == s"hey, there - 1, 2 $i"
               )
           }.reduce(Result.combine)
         },
-        test("namedSection") { () =>
+        test("section.named") { () =>
           sectionTestData.map {
             case (faileds, expectingFailure) =>
               testSection[PureHarness.Uses[List[Int]]](
                 faileds,
                 expectingFailure,
                 t => t,
-                noOpPHarness.namedSection[List[Int]]("section name"),
+                pSection.named[List[Int]]("section name"),
                 (t, res, sc) => t(res, sc),
                 (s, i) => s == s"section name, hey, there - 1, 2 $i"
               )
@@ -106,9 +105,10 @@ object StdlibSuite {
         test("test") { () =>
           var outerRes = ""
           var x = ""
-          val harness = PureHarness.makeFromPrinterR((r, ls) => x = s"$x - $r - $ls")
           val test =
-            harness.test[List[Int]]("test name") { (res: List[Int]) =>
+            PureHarness.rTest(
+              (r, ls) => x = s"$x - $r - $ls"
+            )[List[Int]]("test name") { (res: List[Int]) =>
               outerRes = res.toString
               Succeed()
             }
@@ -125,7 +125,7 @@ object StdlibSuite {
           var testOut = ""
           var printOut = ""
           val alloc: (Unit, List[String]) => TestOutput =
-            PureHarness.makeFromPrinterR((_, _) => ()).allocate[Unit, List[Int]](() => List(1, 2)) {
+            PureHarness.allocate.apply[Unit, List[Int]](() => List(1, 2)) {
               (res: (List[Int], Unit), ls: List[String]) =>
                 testOut = res._1.toString + " " + ls
                 new TestOutput(false, { () => printOut = "printed" })
@@ -143,7 +143,7 @@ object StdlibSuite {
           )
         },
       ),
-      namedSection("FutureHarness")(
+      section.named("FutureHarness")(
         test("section") { () =>
           sectionTestData.map {
             case (faileds, expectingFailure) =>
@@ -151,20 +151,20 @@ object StdlibSuite {
                 faileds,
                 expectingFailure,
                 t => (res, sc) => Future.successful(t(res, sc)),
-                noOpFHarness.section[List[Int]],
+                fSection[List[Int]],
                 (t, res, sc) => Await.result(t(res, sc), Duration.Inf),
                 (s, i) => s == s"hey, there - 1, 2 $i"
               )
           }.reduce(Result.combine)
         },
-        test("namedSection") { () =>
+        test("section.named") { () =>
           sectionTestData.map {
             case (faileds, expectingFailure) =>
               testSection[FutureHarness.Uses[List[Int]]](
                 faileds,
                 expectingFailure,
                 t => (res, sc) => Future.successful(t(res, sc)),
-                noOpFHarness.namedSection[List[Int]]("section name"),
+                fSection.named[List[Int]]("section name"),
                 (t, res, sc) => Await.result(t(res, sc), Duration.Inf),
                 (s, i) => s == s"section name, hey, there - 1, 2 $i"
               )
@@ -173,11 +173,12 @@ object StdlibSuite {
         test("test") { () =>
           var outerRes = ""
           var x = ""
-          val harness = FutureHarness.makeFromPrinterR((r, ls) => x = s"$x - $r - $ls")(ec)
           val test =
-            harness.test[List[Int]]("test name") { (res: List[Int]) =>
+            FutureHarness.rTest(
+              (r, ls) => x = s"$x - $r - $ls"
+            )(ec)[List[Int]]("test name") { (res: List[Int]) =>
               outerRes = res.toString
-              Succeed()
+              Future.successful(Succeed())
             }
           val result = Await.result(test(List(1, 2), List("outer")), Duration.Inf)
           val notPrintedEarly = (x == "")
@@ -193,7 +194,9 @@ object StdlibSuite {
           var testOut = ""
           val alloc: (Unit, List[String]) => TestOutput =
             (u, ls) => Await.result(
-              FutureHarness.makeFromPrinterR((_, _) => ())(ec).allocate[Unit, List[Int]] { () =>
+              FutureHarness.bracket(ec).toAllocate(
+                Lambda[Id NT Future](Future.successful(_))
+              )[Unit, List[Int]] { () =>
                 stages ::= "alloc"
                 List(1, 2)
               } {
@@ -220,7 +223,7 @@ object StdlibSuite {
           var testOut = ""
           val bracket: (Unit, List[String]) => TestOutput =
             (u, ls) => Await.result(
-              FutureHarness.makeFromPrinterEffR((_, _) => ())(ec).bracket[Unit, List[Int]] { () =>
+              FutureHarness.bracket(ec)[Unit, List[Int]] { () =>
                 stages ::= "alloc"
                 Future(List(1, 2))(ec)
               } {

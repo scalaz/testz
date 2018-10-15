@@ -38,11 +38,11 @@ import org.specs2.specification.core.Fragment
 
 object specs2 {
   object Specs2Harness {
-    def makeFromSpec(spec: mutable.Specification, ee: ExecutionEnv): EffectHarness[Future, () => Fragment] = {
+    def testFromSpec(spec: mutable.Specification, ee: ExecutionEnv): Test[Future[Result], () => Fragment] = {
       implicit val exEnv = ee
       import spec._
-      new EffectHarness[Future, () => Fragment] {
-        def test
+      new Test[Future[Result], () => Fragment] {
+        def apply
           (name: String)
           (assertion: () => Future[Result])
           : () => Fragment = () =>
@@ -50,28 +50,28 @@ object specs2 {
           name in {
             assertion().map(_ must_== Succeed).await
           }
-
-        def namedSection
-          (name: String)
-          (
-            test1: () => Fragment,
-            tests: () => Fragment*
-          ): () => Fragment = { () =>
-            name should {
-              val h = test1()
-              tests.map(_()).lastOption.getOrElse(h)
-            }
-          }
-
-        def section
-          (
-            test1: () => Fragment,
-            tests: () => Fragment*
-          ): () => Fragment = { () =>
-            val h = test1()
-            tests.map(_()).lastOption.getOrElse(h)
-          }
       }
     }
+
+    def sectionFromSpec(spec: mutable.Specification): Section[() => Fragment] =
+      new Section[() => Fragment] {
+        import spec._
+
+        def named(name: String)(
+          t1: () => Fragment, ts: () => Fragment*
+        ): () => Fragment = { () =>
+          name should {
+            val h = t1()
+            ts.map(_()).lastOption.getOrElse(h)
+          }
+        }
+
+        def apply(
+          t1: () => Fragment, ts: () => Fragment*
+        ): () => Fragment = { () =>
+          val h = t1()
+          ts.map(_()).lastOption.getOrElse(h)
+        }
+      }
   }
 }

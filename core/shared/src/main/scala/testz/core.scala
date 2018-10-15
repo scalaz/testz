@@ -31,6 +31,14 @@
 package testz
 
 /**
+ * I *hate* having to define this in testz,
+ * but it's utterly basic.
+*/
+abstract class NT[F[_], G[_]] {
+  def apply[A](fa: F[A]): G[A]
+}
+
+/**
   A type for test results.
   A two-branch sum, either `Succeed()`, or `Fail()`.
 */
@@ -38,7 +46,7 @@ sealed abstract class Result
 
 final class Fail private() extends Result {
   override val toString: String = "Fail"
-  override def equals(other: Any): Boolean = other.asInstanceOf[AnyRef] eq this
+  override def equals(other: Any): Boolean = other.isInstanceOf[Fail]
 }
 
 object Fail {
@@ -49,7 +57,7 @@ object Fail {
 
 final class Succeed private() extends Result {
   override val toString: String = "Succeed"
-  override def equals(other: Any): Boolean = other.asInstanceOf[AnyRef] eq this
+  override def equals(other: Any): Boolean = other.isInstanceOf[Succeed]
 }
 
 object Succeed {
@@ -64,49 +72,23 @@ object Result {
     else Fail()
 }
 
-/**
-  The most boring test `Harness` you can think of:
-  pure tests, with sections.
-  Any harness type should be convertible to a `Harness`;
-  it's the lingua franca of tests. If you write tests using
-  `Harness`, they can be adapted to work with any suite type later.
-*/
-abstract class Harness[T] {
-  def test(name: String)(assertions: () => Result): T
+abstract class Test[R, T] { self =>
+  def apply(name: String)(assertions: () => R): T
 
-  def namedSection(name: String)(test1: T, tests: T*): T
-
-  def section(test1: T, tests: T*): T
-}
-
-/**
-  A test harness with test results in the effect `F[_]`.
- */
-abstract class EffectHarness[F[_], T] {
-  def test(name: String)(assertions: () => F[Result]): T
-
-  def namedSection(name: String)(test1: T, tests: T*): T
-
-  def section(test1: T, tests: T*): T
-}
-
-object EffectHarness {
-  def toHarness[F[_], T]
-    (self: EffectHarness[F, T])
-    (pure: Result => F[Result]): Harness[T] = new Harness[T] {
-    def test
-      (name: String)
-      (assertions: () => Result)
-      : T = self.test(name)(() => pure(assertions()))
-
-    def namedSection
-      (name: String)
-      (test1: T, tests: T*)
-      : T = self.namedSection(name)(test1, tests: _*)
-
-    def section
-      (test1: T, tests: T*)
-      : T = self.section(test1, tests: _*)
+  final def contramap[S](f: S => R): Test[S, T] =
+    new Test[S, T] {
+      def apply(name: String)(assertions: () => S): T =
+        self(name)(() => f(assertions()))
     }
 
+  final def map[U](f: T => U): Test[R, U] =
+    new Test[R, U] {
+      def apply(name: String)(assertions: () => R): U =
+        f(self(name)(assertions))
+    }
+}
+
+abstract class Section[T] {
+  def named(name: String)(test1: T, tests: T*): T
+  def apply(test1: T, tests: T*): T
 }
