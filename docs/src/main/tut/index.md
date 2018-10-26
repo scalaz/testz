@@ -31,7 +31,7 @@ libraryDependencies += "org.scalaz" %% "testz-stdlib" % "0.0.5"
 ```
 
 For a way to run testz test suites
-(see [here](./docs/07-runner.html) for details):
+(see [here](./docs/08-runner.html) for details):
 
 ```scala
 libraryDependencies += "org.scalaz" %% "testz-runner" % "0.0.5"
