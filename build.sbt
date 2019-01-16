@@ -203,7 +203,6 @@ val extras = crossProject(JSPlatform, JVMPlatform).in(file("extras"))
   .settings(name := "testz-extras")
   .settings(standardSettings ++ publishSettings)
   .enablePlugins(AutomateHeaderPlugin)
-  .enablePlugins(JmhPlugin)
 
 val extrasJVM = extras.jvm
 val extrasJS = extras.js
