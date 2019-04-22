@@ -134,7 +134,7 @@ object ScalazSuite {
         test("test throwing outside task") { () =>
           val ex = new Exception()
           val test =
-            noOpTest[List[Int]]("test name") { (res: List[Int]) =>
+            noOpTest[List[Int]]("test name") { (_: List[Int]) =>
               throw ex
             }
           try {
@@ -180,7 +180,7 @@ object ScalazSuite {
                 stages ::= "alloc"
                 Task.now(List(1, 2))
               } {
-                li => Task.delay { stages ::= "cleanup" }
+                _ => Task.delay { stages ::= "cleanup" }
               } {
                 (res: (List[Int], Unit), ls: List[String]) =>
                   stages ::= "test"

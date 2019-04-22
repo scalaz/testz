@@ -87,7 +87,7 @@ object ExtrasSuite {
       section.named("integrations")(
         test("pure") { () =>
           val test = TestOnly.pure(_.contains("correct test name"))[Unit] {
-            (_: Unit, ls) => new TestOutput(failed = true, () => ())
+            (_: Unit, _) => new TestOutput(failed = true, () => ())
           }
           assert(
             test((), List("correct test name")).failed &&
@@ -96,7 +96,7 @@ object ExtrasSuite {
         },
         test("future") { () =>
           val test = TestOnly.future(_.contains("correct test name"))[Unit] {
-            (_: Unit, ls) => Future.successful(new TestOutput(failed = true, () => ()))
+            (_: Unit, _) => Future.successful(new TestOutput(failed = true, () => ()))
           }
           // `TestOnly.future` preserving synchronicity is part of its contract.
           def mustSync[A](f: Future[A]): A = f.value.get.get

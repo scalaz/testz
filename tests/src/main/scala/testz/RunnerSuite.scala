@@ -206,7 +206,7 @@ object RunnerSuite {
             (List("first", "second"), List("second", "->", "first", "->", "failed\n")),
           )
           Future.successful((for {
-            r <- results
+            _ <- results
             d <- data
           } yield
             assert(

@@ -227,7 +227,7 @@ object StdlibSuite {
                 stages ::= "alloc"
                 Future(List(1, 2))(ec)
               } {
-                li => Future { stages ::= "cleanup" }(ec)
+                _ => Future { stages ::= "cleanup" }(ec)
               } {
                 (res: (List[Int], Unit), ls: List[String]) =>
                   stages ::= "test"

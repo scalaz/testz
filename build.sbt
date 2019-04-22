@@ -5,8 +5,8 @@ import Keys._
 // shadow sbt-scalajs' definition
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
-val monocleVersion = "1.4.0"
-val scalazVersion  = "7.2.20"
+val monocleVersion = "1.6.0-M4"
+val scalazVersion  = "7.2.27"
 val spireVersion   = "0.14.1"
 
 publishTo in ThisBuild := {
@@ -93,7 +93,7 @@ val standardSettings = Seq(
   headerLicense := Some(HeaderLicense.BSD3Clause("2018", "Edmund Noble")),
   resolvers += Resolver.sonatypeRepo("releases"),
 
-  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"))
+  addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.0"))
 
 val publishSettings = Seq(
   organizationHomepage := None,
@@ -154,8 +154,8 @@ val stdlib = crossProject(JSPlatform, JVMPlatform).in(file("stdlib"))
   .settings(standardSettings ++ publishSettings)
   .settings(
     libraryDependencies ++= Seq(
-      compilerPlugin("com.github.ghik" %% "silencer-plugin" % "1.1"),
-      "com.github.ghik" %% "silencer-lib" % "1.1" % Provided
+      compilerPlugin("com.github.ghik" %% "silencer-plugin" % "1.3.3"),
+      "com.github.ghik" %% "silencer-lib" % "1.3.3" % Provided
     )
   )
   .enablePlugins(AutomateHeaderPlugin)
@@ -190,7 +190,7 @@ val specs2 = crossProject(JSPlatform, JVMPlatform).in(file("specs2"))
   .settings(standardSettings ++ publishSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.specs2" %%% "specs2-core" % "4.0.2"
+      "org.specs2" %%% "specs2-core" % "4.5.1"
     )
   )
   .enablePlugins(AutomateHeaderPlugin)
