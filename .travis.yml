@@ -1,9 +1,10 @@
 language: scala
+dist: xenial
 scala:
   - 2.12.8
 
 jdk:
-  - oraclejdk8
+  - openjdk8
 before_install:
   - export PATH=${PATH}:./vendor/bundle
 install:
