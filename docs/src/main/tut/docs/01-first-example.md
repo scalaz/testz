@@ -11,13 +11,13 @@ and `testz-stdlib`, but the actual test code will only use `testz-core`.
 
 Obligatory imports:
 
-```tut:silent
+```scala
 import testz.{Harness, PureHarness, assert}
 ```
 
 And here's the meat.
 
-```tut:silent
+```scala
 final class MathTests {
   def tests[T](harness: Harness[T]): T = {
     import harness._
@@ -43,7 +43,7 @@ It will return a `T`, in this case `PureHarness.Uses[Unit]`,
 which is `(Unit, List[String]) => TestOutput`.
 `TestOutput` has a method `print()` which you can use to see the output.
 
-```tut:book
+```scala
 val harness: Harness[PureHarness.Uses[Unit]] =
   PureHarness.makeFromPrinter((result, name) =>
     println(s"${name.reverse.mkString("[\"", "\"->\"", "\"]:")} $result")
@@ -55,7 +55,7 @@ For an example of how this is practically used, see the tests for testz itself [
 
 I went through a lot there; let's dissect that.
 
-```tut:silent
+```scala
 import testz.{Harness, PureHarness, assert}
 ```
 

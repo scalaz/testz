@@ -56,7 +56,7 @@ much more expensive.
 
 Here's an example:
 
-```tut:silent
+```scala
 import testz._
 
 object TestsWithResources {

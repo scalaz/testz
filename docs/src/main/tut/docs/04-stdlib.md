@@ -20,7 +20,7 @@ it needs and the current test group name (and all labels attached to it)
 produces a `TestOutput`, which describes both how to print the results
 of the group and whether any tests failed.
 
-```tut:silent
+```scala
 import testz._
 import testz.runner.TestOutput
 
@@ -88,7 +88,7 @@ It's a lot more verbose than `PureHarness`, mostly because I'm careful with
 `Future` that are very useful in implementing the harness in a clear and concise
 way.
 
-```tut:silent
+```scala
 import testz._
 import testz.runner.TestOutput
 
