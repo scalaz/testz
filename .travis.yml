@@ -1,8 +1,11 @@
 language: scala
 dist: xenial
-scala:
-  - 2.12.8
-
+matrix:
+  include:
+  - scala: 2.12.8
+  - scala: 2.13.0
+    script:
+    - sbt "++${TRAVIS_SCALA_VERSION}!" update # TODO enable test
 jdk:
   - openjdk8
 before_install:
@@ -14,7 +17,7 @@ install:
   - gem install jekyll -v 3.8.2
 sudo: false
 script:
-  - if [[ "$TRAVIS_PULL_REQUEST" = "false" && "$TRAVIS_BRANCH" = "master" ]]; then sbt coverage tests/run publishMicrosite coverageReport; else sbt coverage tests/run coverageReport tut; fi
+  - if [[ "$TRAVIS_PULL_REQUEST" = "false" && "$TRAVIS_BRANCH" = "master" ]]; then sbt "++${TRAVIS_SCALA_VERSION}!" coverage tests/run publishMicrosite coverageReport; else sbt "++${TRAVIS_SCALA_VERSION}!" coverage tests/run coverageReport tut; fi
 branches:
   except:
   - "/^v\\d+\\.\\d+\\.\\d+$/"
