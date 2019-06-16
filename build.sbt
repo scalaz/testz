@@ -101,7 +101,6 @@ val standardSettings = Seq(
 
   licenses += ("BSD New" -> new URL("https://opensource.org/licenses/BSD-3-Clause")),
   headerLicense := Some(HeaderLicense.BSD3Clause("2018", "Edmund Noble")),
-  resolvers += Resolver.sonatypeRepo("releases"),
 
   addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3"))
 
