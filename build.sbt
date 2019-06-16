@@ -48,6 +48,7 @@ val standardSettings = Seq(
           "-Ywarn-infer-any",                  // Warn when a type argument is inferred to be `Any`.
           "-Ywarn-nullary-override",           // Warn when non-nullary `def f()' overrides nullary `def f'.
           "-Ywarn-nullary-unit",               // Warn when nullary methods return Unit.
+          "-opt-warnings:_",                   // Warn if a method call marked @inline cannot be inlined
         )
       case _ =>
         Nil
@@ -89,7 +90,6 @@ val standardSettings = Seq(
     "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
     "-Ywarn-unused:privates",            // Warn if a private member is unused.
     "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
-    "-opt-warnings:_",                   // Warn if a method call marked @inline cannot be inlined
     "-opt:l:inline",                     // Enable the optimizer
     "-opt-inline-from:<sources>",
     "-Yopt-inline-heuristics:at-inline-annotated",
