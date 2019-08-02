@@ -5,10 +5,10 @@ import Keys._
 // shadow sbt-scalajs' definition
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
-val monocleVersion = "1.6.0-RC1"
+val monocleVersion = "1.6.0"
 val scalazVersion  = "7.2.28"
 val spireVersion   = "0.14.1"
-val silencerVersion = "1.4.1"
+val silencerVersion = "1.4.2"
 
 publishTo in ThisBuild := {
   val nexus = "https://oss.sonatype.org/"
