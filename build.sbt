@@ -269,6 +269,8 @@ val docs = project
     scalacOptions --= Seq("-Yno-imports", "-Ywarn-unused:imports", "-Xfatal-warnings")
   )
   .settings(
+    // https://github.com/47deg/sbt-microsites/issues/305
+    libraryDependencies ~= (_.filterNot(m => m.organization == "org.scalameta" && m.name.startsWith("mdoc"))),
     micrositeName             := "testz",
     micrositeDescription      := "Purely functional testing for Scala",
     micrositeAuthor           := "Edmund Noble",
