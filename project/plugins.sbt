@@ -1,4 +1,3 @@
-addSbtPlugin("io.get-coursier"    % "sbt-coursier"             % "1.0.3" )
 addSbtPlugin("de.heikoseeberger"  % "sbt-header"               % "5.2.0" )
 addSbtPlugin("pl.project13.scala" % "sbt-jmh"                  % "0.3.7" )
 addSbtPlugin("com.47deg"          % "sbt-microsites"           % "0.9.4")
