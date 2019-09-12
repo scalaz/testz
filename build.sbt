@@ -5,7 +5,7 @@ import Keys._
 // shadow sbt-scalajs' definition
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
 
-val monocleVersion = "1.6.0"
+val monocleVersion = "2.0.0"
 val scalazVersion  = "7.2.28"
 val spireVersion   = "0.14.1"
 val silencerVersion = "1.4.2"
