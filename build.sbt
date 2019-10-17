@@ -201,7 +201,7 @@ val specs2 = crossProject(JSPlatform, JVMPlatform).in(file("specs2"))
   .settings(standardSettings ++ publishSettings)
   .settings(
     libraryDependencies ++= Seq(
-      "org.specs2" %%% "specs2-core" % "4.7.1"
+      "org.specs2" %%% "specs2-core" % "4.8.0"
     )
   )
   .enablePlugins(AutomateHeaderPlugin)
